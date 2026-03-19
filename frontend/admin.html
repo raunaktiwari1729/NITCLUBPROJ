@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel — NIT Club Compass</title>
+  <link rel="stylesheet" href="/css/style.css?v=11">
+  <script src="/js/loader.js?v=11"></script>
+  <style>
+    .stat-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.75rem;margin-bottom:1.5rem}
+    .stat-box{background:var(--paper2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem;text-align:center;transition:all .22s var(--ease)}
+    .stat-box:hover{border-color:var(--red-border);transform:translateY(-2px);box-shadow:var(--shadow)}
+    .stat-num{font-family:var(--font-serif);font-size:2rem;font-weight:400;color:var(--red);line-height:1}
+    .stat-lbl{font-size:.74rem;color:var(--ink3);margin-top:.25rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+    .staff-card{background:var(--paper2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.1rem;display:flex;align-items:center;gap:.85rem;transition:all .22s var(--ease);margin-bottom:.55rem}
+    .staff-card:hover{border-color:var(--red-border);box-shadow:var(--shadow)}
+    .staff-avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.95rem;font-weight:700;color:#fff;flex-shrink:0}
+    .staff-info{flex:1;min-width:0}
+    .staff-name{font-weight:700;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .staff-email{font-size:.78rem;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .staff-meta{font-size:.72rem;color:var(--ink4);margin-top:.1rem}
+    .role-pill{display:inline-flex;align-items:center;gap:.2rem;padding:.12rem .5rem;border-radius:6px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;flex-shrink:0}
+    .pill-club{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+    .pill-faculty{background:rgba(26,86,219,.08);color:#1A56DB;border:1px solid rgba(26,86,219,.2)}
+    .modal-overlay{position:fixed;inset:0;background:rgba(26,14,14,.55);backdrop-filter:blur(8px);z-index:300;display:none;align-items:center;justify-content:center;padding:1.4rem}
+    .modal-overlay.open{display:flex;animation:overlayIn .2s ease both}
+    .modal-box{background:var(--paper2);border:1px solid var(--border);border-radius:var(--radius-xl);padding:1.75rem;width:100%;max-width:480px;box-shadow:var(--shadow-lg);animation:modalUp .28s var(--ease) both;position:relative}
+    .modal-box::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--red),var(--red3));border-radius:var(--radius-xl) var(--radius-xl) 0 0}
+    @keyframes overlayIn{from{opacity:0}to{opacity:1}}
+    @keyframes modalUp{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:none}}
+    .pw-copy{font-family:monospace;background:var(--paper3);border:1px solid var(--border);border-radius:var(--radius);padding:.5rem .85rem;font-size:.88rem;color:var(--ink);word-break:break-all;cursor:pointer;transition:background .15s}
+    .pw-copy:hover{background:var(--paper4)}
+  </style>
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+
+<div class="page">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.4rem;flex-wrap:wrap;gap:.75rem">
+    <div style="display:flex;align-items:center;gap:.75rem">
+      <div style="width:42px;height:42px;border-radius:12px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:1.2rem;box-shadow:var(--shadow-red)">A</div>
+      <div>
+        <h1 style="font-family:var(--font-serif);font-size:1.5rem;font-weight:400">Admin Panel</h1>
+        <p class="text-muted text-small" id="admin-subtitle">Manage clubs and content</p>
+      </div>
+    </div>
+    <div style="display:none;gap:.5rem" id="owner-actions">
+      <button class="btn btn-primary btn-sm" onclick="openAddStaff()">+ Add Staff</button>
+    </div>
+  </div>
+
+  <!-- Owner Stats Strip (owner only) -->
+  <div id="stats-strip" style="display:none">
+    <div class="stat-strip" id="stats-grid"></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="admin-tabs" id="admin-tabs">
+    <button class="admin-tab active" onclick="showTab('edit')">Edit Club</button>
+    <button class="admin-tab" onclick="showTab('create')">+ Create Club</button>
+    <!-- Owner-only tab injected by JS -->
+  </div>
+
+  <!-- Edit Tab -->
+  <div id="tab-edit">
+    <div style="display:grid;grid-template-columns:260px 1fr;gap:1.25rem;align-items:start">
+      <div>
+        <div style="font-size:.78rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.65rem">Select Club</div>
+        <div id="club-picker" style="display:flex;flex-direction:column;gap:.4rem">
+          <div class="loading-center"><span class="spinner"></span></div>
+        </div>
+      </div>
+      <div id="edit-form" class="card">
+        <div class="empty-state" style="padding:3rem">
+          <div class="empty-icon"></div>
+          <div class="empty-title">Select a club</div>
+          <div class="empty-sub">Choose a club from the list to edit</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Tab -->
+  <div id="tab-create" style="display:none">
+    <div class="card" style="max-width:620px">
+      <h2 style="font-family:var(--font-serif);font-size:1.1rem;font-weight:400;margin-bottom:1.25rem">Create New Club</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem">
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Club Name *</label>
+          <input class="form-input" id="c-name" placeholder="e.g. Robotics Club">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Domain *</label>
+          <select class="form-select" id="c-domain">
+            <option value="Technical">Technical</option>
+            <option value="Cultural">Cultural</option>
+            <option value="Sports">Sports</option>
+            <option value="Literary">Literary</option>
+            <option value="Social">Social</option>
+            <option value="Management">Management</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Icon (emoji)</label>
+          <input class="form-input" id="c-icon" placeholder="🎯" maxlength="4">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Tagline *</label>
+          <input class="form-input" id="c-tagline" placeholder="Short memorable tagline">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Description *</label>
+          <textarea class="form-textarea" id="c-description" placeholder="Full description…" style="min-height:100px"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Members</label>
+          <input class="form-input" id="c-members" type="number" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Founded Year</label>
+          <input class="form-input" id="c-founded" type="number" placeholder="2020">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Contact Email</label>
+          <input class="form-input" id="c-email" type="email" placeholder="club@nitkkr.ac.in">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Cover Image URL</label>
+          <input class="form-input" id="c-image" placeholder="https://images.unsplash.com/…">
+          <div class="form-hint">Use Unsplash or any public image URL</div>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Tags (comma separated)</label>
+          <input class="form-input" id="c-tags" placeholder="coding, hackathon, web">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Events (comma separated)</label>
+          <input class="form-input" id="c-events" placeholder="Hackshetra, Workshop">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Recruitment Info</label>
+          <textarea class="form-textarea" id="c-recruitment" placeholder="How to join…" style="min-height:70px"></textarea>
+        </div>
+      </div>
+      <div id="create-err" class="alert alert-error" style="display:none"></div>
+      <button class="btn btn-primary" style="margin-top:.5rem" onclick="createClub()">Create Club →</button>
+    </div>
+  </div>
+
+  <!-- Staff Management Tab (owner only) -->
+  <div id="tab-staff" style="display:none">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;align-items:start">
+
+      <!-- Club Admins -->
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem">
+          <div style="font-size:.82rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em">Club Admins</div>
+          <span id="club-admin-count" style="font-size:.75rem;color:var(--ink3)"></span>
+        </div>
+        <div id="club-admin-list"><div class="loading-center"><span class="spinner"></span></div></div>
+      </div>
+
+      <!-- Faculty In-charge -->
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem">
+          <div style="font-size:.82rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em">Faculty In-charge</div>
+          <span id="faculty-count" style="font-size:.75rem;color:var(--ink3)"></span>
+        </div>
+        <div id="faculty-list"><div class="loading-center"><span class="spinner"></span></div></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Add Staff Modal -->
+<div class="modal-overlay" id="add-staff-modal">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem">
+      <div style="font-family:var(--font-serif);font-size:1.3rem">Add Staff Account</div>
+      <button onclick="closeModal('add-staff-modal')" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--ink3);border-radius:8px;padding:.2rem .4rem;transition:background .15s" onmouseover="this.style.background='var(--paper3)'" onmouseout="this.style.background='none'">✕</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem">
+      <div class="form-group" style="grid-column:1/-1">
+        <label class="form-label">Role *</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+          <div class="role-option active" id="srole-club_admin" onclick="selectStaffFormRole('club_admin')" style="padding:.65rem;text-align:center;cursor:pointer;border:1.5px solid var(--red);background:var(--red-bg);border-radius:var(--radius);transition:all .2s">
+            <div style="font-size:1.1rem"></div><div style="font-size:.78rem;font-weight:700;margin-top:.15rem">Club Admin</div>
+          </div>
+          <div class="role-option" id="srole-faculty_incharge" onclick="selectStaffFormRole('faculty_incharge')" style="padding:.65rem;text-align:center;cursor:pointer;border:1.5px solid var(--border2);background:var(--paper3);border-radius:var(--radius);transition:all .2s">
+            <div style="font-size:1.1rem"></div><div style="font-size:.78rem;font-weight:700;margin-top:.15rem">Faculty In-charge</div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label class="form-label">Full Name *</label>
+        <input class="form-input" id="s-name" placeholder="Dr. Rajesh Kumar">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label class="form-label">Email *</label>
+        <input class="form-input" id="s-email" type="email" placeholder="name@nitkkr.ac.in">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label class="form-label">Password *</label>
+        <div style="position:relative">
+          <input class="form-input" id="s-password" type="text" placeholder="Set login password (min 6 chars)" style="padding-right:5.5rem">
+          <button onclick="genPassword()" style="position:absolute;right:.5rem;top:50%;transform:translateY(-50%);background:var(--red-bg);border:1px solid var(--red-border);border-radius:6px;padding:.22rem .55rem;font-size:.72rem;font-weight:700;color:var(--red);cursor:pointer;white-space:nowrap">Generate</button>
+        </div>
+        <div class="form-hint">Share this password with the staff member after creating the account</div>
+      </div>
+      <div class="form-group" style="grid-column:1/-1" id="s-club-group">
+        <label class="form-label">Assign Club</label>
+        <select class="form-select" id="s-club">
+          <option value="">— Select a club (optional) —</option>
+        </select>
+      </div>
+      <div class="form-group" style="grid-column:1/-1" id="s-dept-group" style="display:none">
+        <label class="form-label">Department</label>
+        <input class="form-input" id="s-dept" placeholder="e.g. Computer Science">
+      </div>
+    </div>
+
+    <div id="add-staff-err" class="alert alert-error" style="display:none;margin-top:.5rem"></div>
+    <div style="display:flex;gap:.65rem;margin-top:1rem">
+      <button class="btn btn-primary" style="flex:1" id="add-staff-btn" onclick="submitAddStaff()">Create Account</button>
+      <button class="btn btn-secondary" onclick="closeModal('add-staff-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Credentials Modal (shown after creating) -->
+<div class="modal-overlay" id="creds-modal">
+  <div class="modal-box">
+    <div style="text-align:center;margin-bottom:1.2rem">
+      <div style="font-size:2.5rem;margin-bottom:.4rem"></div>
+      <div style="font-family:var(--font-serif);font-size:1.3rem">Account Created!</div>
+      <div style="font-size:.84rem;color:var(--ink3);margin-top:.25rem">Share these credentials with the staff member</div>
+    </div>
+    <div style="background:var(--paper3);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem;margin-bottom:1rem">
+      <div style="font-size:.74rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Login Credentials</div>
+      <div style="font-size:.82rem;color:var(--ink3);margin-bottom:.3rem">Email:</div>
+      <div class="pw-copy" id="creds-email" onclick="copyText(this)">—</div>
+      <div style="font-size:.82rem;color:var(--ink3);margin-top:.6rem;margin-bottom:.3rem">Password:</div>
+      <div class="pw-copy" id="creds-password" onclick="copyText(this)">—</div>
+      <div style="font-size:.82rem;color:var(--ink3);margin-top:.6rem;margin-bottom:.3rem">Login URL:</div>
+      <div class="pw-copy" onclick="copyText(this)" id="creds-url">—</div>
+    </div>
+    <div class="alert alert-info" style="font-size:.8rem;margin-bottom:1rem">
+      Click any field above to copy it. Share these via secure channel (WhatsApp/email).
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="closeModal('creds-modal');loadStaff()">Done</button>
+  </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal-overlay" id="reset-pw-modal">
+  <div class="modal-box" style="max-width:380px">
+    <div style="font-family:var(--font-serif);font-size:1.2rem;margin-bottom:1.1rem">Reset Password</div>
+    <div style="font-size:.84rem;color:var(--ink3);margin-bottom:1rem" id="reset-pw-for">For: —</div>
+    <div class="form-group">
+      <label class="form-label">New Password</label>
+      <div style="position:relative">
+        <input class="form-input" id="reset-pw-input" type="text" placeholder="New password (min 6 chars)" style="padding-right:5.5rem">
+        <button onclick="genResetPassword()" style="position:absolute;right:.5rem;top:50%;transform:translateY(-50%);background:var(--red-bg);border:1px solid var(--red-border);border-radius:6px;padding:.22rem .55rem;font-size:.72rem;font-weight:700;color:var(--red);cursor:pointer">Generate</button>
+      </div>
+    </div>
+    <div id="reset-pw-err" class="alert alert-error" style="display:none"></div>
+    <div style="display:flex;gap:.65rem;margin-top:.8rem">
+      <button class="btn btn-primary" style="flex:1" id="reset-pw-btn" onclick="submitResetPassword()">Update Password</button>
+      <button class="btn btn-secondary" onclick="closeModal('reset-pw-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<footer id="footer"></footer>
+<script src="/config.js?v=11"></script>
+<script src="/js/api.js?v=11"></script>
+<script src="/js/auth.js?v=11"></script>
+<script src="/js/app.js?v=11"></script>
+<script>
+  Auth.requireAuth();
+  renderNavbar();
+  renderFooter();
+  initChatWidget();
+
+  const user = Auth.getUser();
+  const isOwner = user?.role === 'owner';
+  const isClubAdmin = user?.role === 'club_admin';
+  const isFaculty = user?.role === 'faculty_incharge';
+
+  // Access control
+  if (!isOwner && !isClubAdmin && !isFaculty) {
+    document.querySelector('.page').innerHTML = `
+      <div class="empty-state" style="padding:5rem">
+        <div class="empty-icon">🚫</div>
+        <div class="empty-title">Access Denied</div>
+        <div class="empty-sub">You need Admin or Faculty role to access this page.</div>
+        <a href="/index.html" class="btn btn-secondary" style="margin-top:1rem">Go Home</a>
+      </div>`;
+  } else {
+    init();
+  }
+
+  let clubs = [], allStaff = [], selectedId = null, selectedStaffRole = 'club_admin', resetUserId = null;
+
+  async function init() {
+    document.getElementById('admin-subtitle').textContent =
+      isOwner ? 'Full platform control — Super Admin' :
+      isClubAdmin ? 'Managing your club' : 'Faculty In-charge view';
+
+    if (isOwner || isClubAdmin || isFaculty) {
+      // Show owner actions & staff tab
+      document.getElementById('owner-actions').style.display = 'flex';
+      if (isOwner) document.getElementById('stats-strip').style.display = 'block';
+      const tabsEl = document.getElementById('admin-tabs');
+      const staffTabBtn = document.createElement('button');
+      staffTabBtn.className = 'admin-tab';
+      staffTabBtn.onclick = () => showTab('staff');
+      staffTabBtn.textContent = 'Staff';
+      tabsEl.appendChild(staffTabBtn);
+      if (isOwner) loadStats();
+    }
+    loadClubs();
+  }
+
+  // ── Stats ──────────────────────────────────────────────────────────────────
+  async function loadStats() {
+    try {
+      const s = await apiRequest('/api/owner/stats');
+      document.getElementById('stats-grid').innerHTML = [
+        {n: s.total_users,  l: 'Users'},
+        {n: s.total_clubs,  l: 'Clubs'},
+        {n: s.total_posts,  l: 'Posts'},
+        {n: s.total_events, l: 'Events'},
+        {n: s.club_admins,  l: 'Club Admins'},
+        {n: s.faculty,      l: 'Faculty'},
+      ].map(x => `<div class="stat-box"><div class="stat-num">${x.n}</div><div class="stat-lbl">${x.l}</div></div>`).join('');
+    } catch(e) { console.error(e); }
+  }
+
+  // ── Tab switching ──────────────────────────────────────────────────────────
+  function showTab(name) {
+    const tabs = ['edit','create','staff'];
+    document.querySelectorAll('.admin-tab').forEach((t,i) => t.classList.toggle('active', tabs[i] === name));
+    tabs.forEach(t => {
+      const el = document.getElementById('tab-'+t);
+      if (el) el.style.display = t === name ? '' : 'none';
+    });
+    if (name === 'staff') loadStaff();
+  }
+
+  // ── API helper ─────────────────────────────────────────────────────────────
+  async function apiRequest(path, method='GET', body=null) {
+    const tok = Auth.getToken();
+    const opts = { method, headers: {'Content-Type':'application/json', 'Authorization':'Bearer '+tok} };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch((typeof API_BASE !== 'undefined' ? API_BASE : '') + path, opts);
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || 'Request failed');
+    return data;
+  }
+
+  // ── Clubs ──────────────────────────────────────────────────────────────────
+  async function loadClubs() {
+    try {
+      clubs = await api.clubs();
+      // If club_admin, filter to their managed club
+      let display = clubs;
+      if (isClubAdmin && user.managed_club_id) {
+        display = clubs.filter(c => c.id === user.managed_club_id);
+      }
+      document.getElementById('club-picker').innerHTML = (display||[]).map(c => `
+        <div class="club-admin-card ${c.id===selectedId?'selected':''}" onclick="selectClub('${c.id}')">
+          <span style="margin-right:.3rem"></span> ${escHtml(c.name)}
+          <div style="font-size:.72rem;color:${domainColor(c.domain)};margin-top:.1rem">${c.domain}</div>
+        </div>`).join('') || '<div class="text-muted text-small" style="padding:.5rem">No clubs found</div>';
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  function selectClub(id) {
+    selectedId = id;
+    const c = clubs.find(x=>x.id===id);
+    if (!c) return;
+    loadClubs();
+    document.getElementById('edit-form').innerHTML = `
+      <h2 style="font-family:var(--font-serif);font-size:1.05rem;font-weight:400;margin-bottom:1.2rem">Edit: ${escHtml(c.name)}</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem">
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Name</label>
+          <input class="form-input" id="e-name" value="${escHtml(c.name)}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tagline</label>
+          <input class="form-input" id="e-tagline" value="${escHtml(c.tagline||'')}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Members</label>
+          <input class="form-input" id="e-members" type="number" value="${c.members||0}">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Description</label>
+          <textarea class="form-textarea" id="e-description" style="min-height:100px">${escHtml(c.description||'')}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="e-email" value="${escHtml(c.email||'')}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Image URL</label>
+          <input class="form-input" id="e-image" value="${escHtml(c.image_url||'')}">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Tags (comma separated)</label>
+          <input class="form-input" id="e-tags" value="${(c.tags||[]).join(', ')}">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Events (comma separated)</label>
+          <input class="form-input" id="e-events" value="${(c.events||[]).join(', ')}">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Recruitment Info</label>
+          <textarea class="form-textarea" id="e-recruitment" style="min-height:70px">${escHtml(c.recruitment_info||'')}</textarea>
+        </div>
+      </div>
+      <div id="edit-err" class="alert alert-error" style="display:none"></div>
+      <div style="display:flex;gap:.65rem;margin-top:.5rem">
+        <button class="btn btn-primary" onclick="saveClub('${id}')">Save Changes</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('edit-form').innerHTML='<div class=&quot;empty-state&quot; style=&quot;padding:3rem&quot;><div class=&quot;empty-icon&quot;></div><div class=&quot;empty-title&quot;>Select a club</div><div class=&quot;empty-sub&quot;>Choose a club from the list to edit</div></div>'">Cancel</button>
+        <button class="btn btn-ghost" style="color:var(--red);margin-left:auto" onclick="deleteClub('${id}')">Delete Club</button>
+      </div>`;
+  }
+
+  async function deleteClub(id) {
+    if(!confirm("Are you sure you want to delete this club? All data will be lost.")) return;
+    try {
+      await api.deleteClub(id);
+      toast('Club deleted successfully');
+      showTab('create');
+      loadClubs();
+      document.getElementById('edit-form').innerHTML = '<div class="empty-state" style="padding:3rem"><div class="empty-icon"></div><div class="empty-title">Select a club</div></div>';
+    } catch(e) {
+      toast(e.message, 'error');
+    }
+  }
+
+  async function saveClub(id) {
+    const upd = {
+      name: document.getElementById('e-name').value,
+      tagline: document.getElementById('e-tagline').value,
+      members: parseInt(document.getElementById('e-members').value)||0,
+      description: document.getElementById('e-description').value,
+      email: document.getElementById('e-email').value,
+      image_url: document.getElementById('e-image').value,
+      tags: document.getElementById('e-tags').value.split(',').map(t=>t.trim()).filter(Boolean),
+      events: document.getElementById('e-events').value.split(',').map(t=>t.trim()).filter(Boolean),
+      recruitment_info: document.getElementById('e-recruitment').value,
+    };
+    try {
+      await api.updateClub(id, upd);
+      toast('Club updated!');
+      loadClubs();
+    } catch(e) {
+      const err = document.getElementById('edit-err');
+      err.textContent = e.message; err.style.display='block';
+    }
+  }
+
+  async function createClub() {
+    const err = document.getElementById('create-err'); err.style.display='none';
+    const data = {
+      name: document.getElementById('c-name').value.trim(),
+      domain: document.getElementById('c-domain').value,
+      icon: document.getElementById('c-icon').value.trim() || '🎯',
+      tagline: document.getElementById('c-tagline').value.trim(),
+      description: document.getElementById('c-description').value.trim(),
+      members: parseInt(document.getElementById('c-members').value)||0,
+      founded: parseInt(document.getElementById('c-founded').value)||2020,
+      email: document.getElementById('c-email').value.trim(),
+      image_url: document.getElementById('c-image').value.trim(),
+      tags: document.getElementById('c-tags').value.split(',').map(t=>t.trim()).filter(Boolean),
+      events: document.getElementById('c-events').value.split(',').map(t=>t.trim()).filter(Boolean),
+      recruitment_info: document.getElementById('c-recruitment').value.trim(),
+    };
+    if (!data.name || !data.tagline || !data.description) {
+      err.textContent='Name, tagline, and description are required'; err.style.display='block'; return;
+    }
+    try {
+      await api.createClub(data);
+      toast('Club created!');
+      showTab('edit'); loadClubs();
+    } catch(e) { err.textContent=e.message; err.style.display='block'; }
+  }
+
+  // ── Staff management ───────────────────────────────────────────────────────
+  async function loadStaff() {
+    try {
+      allStaff = await apiRequest('/api/owner/staff');
+      const admins  = allStaff.filter(s => s.role === 'club_admin');
+      const faculty = allStaff.filter(s => s.role === 'faculty_incharge');
+
+      document.getElementById('club-admin-count').textContent = admins.length + ' accounts';
+      document.getElementById('faculty-count').textContent = faculty.length + ' accounts';
+
+      document.getElementById('club-admin-list').innerHTML = admins.length
+        ? admins.map(s => staffCardHtml(s)).join('')
+        : '<div class="empty-state" style="padding:1.5rem"><div class="empty-icon"></div><div class="empty-sub">No club admins yet</div></div>';
+
+      document.getElementById('faculty-list').innerHTML = faculty.length
+        ? faculty.map(s => staffCardHtml(s)).join('')
+        : '<div class="empty-state" style="padding:1.5rem"><div class="empty-icon"></div><div class="empty-sub">No faculty added yet</div></div>';
+    } catch(e) { toast(e.message, 'error'); }
+  }
+
+  function staffCardHtml(s) {
+    const bg = avatarColor(s.name);
+    const roleLabel = s.role === 'club_admin' ? 'Club Admin' : 'Faculty';
+    const roleCls   = s.role === 'club_admin' ? 'pill-club' : 'pill-faculty';
+    const clubInfo  = s.managed_club_name ? `<span style="font-size:.72rem;background:var(--paper3);border:1px solid var(--border);border-radius:4px;padding:.08rem .38rem;color:var(--ink2)">${escHtml(s.managed_club_name)}</span>` : '';
+    return `<div class="staff-card">
+      <div class="staff-avatar" style="background:${bg}">${initials(s.name)}</div>
+      <div class="staff-info">
+        <div class="staff-name">${escHtml(s.name)}</div>
+        <div class="staff-email">${escHtml(s.email)}</div>
+        <div class="staff-meta" style="display:flex;gap:.3rem;flex-wrap:wrap;margin-top:.2rem">
+          <span class="role-pill ${roleCls}">${roleLabel}</span>
+          ${clubInfo}
+          ${s.department ? `<span style="font-size:.7rem;color:var(--ink4)">${escHtml(s.department)}</span>` : ''}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.3rem;flex-shrink:0">
+        <button class="btn btn-sm btn-outline" onclick="openResetPassword('${s.id}','${escHtml(s.name)}')">Reset PW</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteStaff('${s.id}','${escHtml(s.name)}')">Remove</button>
+      </div>
+    </div>`;
+  }
+
+  // ── Add Staff Modal ────────────────────────────────────────────────────────
+  function openAddStaff() {
+    // Populate club dropdown
+    const sel = document.getElementById('s-club');
+    sel.innerHTML = '<option value="">— Select a club (optional) —</option>' +
+      clubs.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('');
+    document.getElementById('s-name').value = '';
+    document.getElementById('s-email').value = '';
+    document.getElementById('s-password').value = '';
+    document.getElementById('add-staff-err').style.display = 'none';
+    
+    selectStaffFormRole('club_admin');
+    if (isClubAdmin) {
+      document.getElementById('srole-faculty_incharge').style.display = 'none';
+      document.getElementById('s-club-group').style.display = 'none';
+    } else {
+      document.getElementById('srole-faculty_incharge').style.display = 'block';
+    }
+    
+    document.getElementById('add-staff-modal').classList.add('open');
+  }
+
+  function selectStaffFormRole(role) {
+    selectedStaffRole = role;
+    ['club_admin','faculty_incharge'].forEach(r => {
+      const el = document.getElementById('srole-'+r);
+      if (r === role) {
+        el.style.border = '1.5px solid var(--red)';
+        el.style.background = 'var(--red-bg)';
+      } else {
+        el.style.border = '1.5px solid var(--border2)';
+        el.style.background = 'var(--paper3)';
+      }
+    });
+    if (!isClubAdmin) {
+      document.getElementById('s-club-group').style.display = role === 'club_admin' ? '' : 'none';
+    }
+    document.getElementById('s-dept-group').style.display = role === 'faculty_incharge' ? '' : 'none';
+  }
+
+  function genPassword() {
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!';
+    let pw = '';
+    for (let i = 0; i < 10; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+    document.getElementById('s-password').value = pw;
+  }
+
+  async function submitAddStaff() {
+    const err = document.getElementById('add-staff-err'); err.style.display='none';
+    const name  = document.getElementById('s-name').value.trim();
+    const email = document.getElementById('s-email').value.trim().toLowerCase();
+    const pass  = document.getElementById('s-password').value.trim();
+    const club  = isClubAdmin ? user.managed_club_id : (document.getElementById('s-club')?.value || '');
+    const dept  = document.getElementById('s-dept')?.value.trim() || '';
+
+    if (!name)  { err.textContent='Enter full name'; err.style.display='block'; return; }
+    if (!email) { err.textContent='Enter email'; err.style.display='block'; return; }
+    if (!pass || pass.length < 6) { err.textContent='Password must be at least 6 characters'; err.style.display='block'; return; }
+
+
+    const btn = document.getElementById('add-staff-btn');
+    btn.disabled=true; btn.textContent='Creating…';
+    try {
+      await apiRequest('/api/owner/staff', 'POST', {
+        name, email, password: pass,
+        role: selectedStaffRole,
+        club_id: club || null,
+        department: dept,
+      });
+      closeModal('add-staff-modal');
+      // Show credentials
+      document.getElementById('creds-email').textContent = email;
+      document.getElementById('creds-password').textContent = pass;
+      document.getElementById('creds-url').textContent = window.location.origin + '/admin-login.html';
+      document.getElementById('creds-modal').classList.add('open');
+    } catch(e) {
+      err.textContent = e.message; err.style.display='block';
+    } finally {
+      btn.disabled=false; btn.textContent='Create Account';
+    }
+  }
+
+  // ── Reset Password ─────────────────────────────────────────────────────────
+  function openResetPassword(uid, name) {
+    resetUserId = uid;
+    document.getElementById('reset-pw-for').textContent = 'For: ' + name;
+    document.getElementById('reset-pw-input').value = '';
+    document.getElementById('reset-pw-err').style.display = 'none';
+    document.getElementById('reset-pw-modal').classList.add('open');
+  }
+
+  function genResetPassword() {
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!';
+    let pw = '';
+    for (let i = 0; i < 10; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+    document.getElementById('reset-pw-input').value = pw;
+  }
+
+  async function submitResetPassword() {
+    const err = document.getElementById('reset-pw-err'); err.style.display='none';
+    const pw  = document.getElementById('reset-pw-input').value.trim();
+    if (!pw || pw.length < 6) { err.textContent='Password must be at least 6 chars'; err.style.display='block'; return; }
+    const btn = document.getElementById('reset-pw-btn');
+    btn.disabled=true; btn.textContent='Updating…';
+    try {
+      await apiRequest(`/api/owner/staff/${resetUserId}/password`, 'PATCH', {password: pw});
+      toast('Password updated!');
+      closeModal('reset-pw-modal');
+    } catch(e) {
+      err.textContent = e.message; err.style.display='block';
+    } finally {
+      btn.disabled=false; btn.textContent='Update Password';
+    }
+  }
+
+  async function deleteStaff(uid, name) {
+    if (!confirm(`Remove "${name}" from staff? They will lose admin access.`)) return;
+    try {
+      await apiRequest(`/api/owner/staff/${uid}`, 'DELETE');
+      toast(name + ' removed');
+      loadStaff(); loadStats();
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  // ── Utilities ──────────────────────────────────────────────────────────────
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  function copyText(el) {
+    navigator.clipboard.writeText(el.textContent).then(() => {
+      const orig = el.style.background;
+      el.style.background = 'var(--success-bg)';
+      setTimeout(() => el.style.background = orig, 800);
+      toast('Copied!');
+    });
+  }
+</script>
+</body>
+</html>

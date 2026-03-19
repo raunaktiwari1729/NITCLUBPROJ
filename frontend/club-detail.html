@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Club — NIT KKR Compass</title>
+  <link rel="stylesheet" href="/css/style.css?v=11">
+  
+<script src="/js/loader.js?v=11"></script>
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+
+<div style="max-width:900px;margin:0 auto;padding:1.5rem 1.35rem">
+  <div id="club-content">
+    <div class="loading-center" style="padding:5rem"><span class="spinner"></span></div>
+  </div>
+</div>
+
+<footer id="footer"></footer>
+<script src="/config.js?v=11"></script>
+<script src="/js/api.js?v=11"></script>
+<script src="/js/auth.js?v=11"></script>
+<script src="/js/app.js?v=11"></script>
+<script>
+  renderNavbar('clubs');
+  renderFooter();
+  initChatWidget();
+  const clubId = new URLSearchParams(location.search).get('id');
+  if (!clubId) window.location.href = '/clubs.html';
+
+  let currentClub = null;
+
+  async function loadClub() {
+    try {
+      const club = await api.club(clubId);
+      currentClub = club;
+      document.title = `${club.name} — NIT KKR Compass`;
+      const col = domainColor(club.domain);
+      const user = Auth.getUser();
+
+      let bookmarked = false, watchlisted = false;
+      if (user) {
+        try {
+          const [bms, wl] = await Promise.all([api.bookmarks(), api.watchlist()]);
+          bookmarked   = bms.some(b => b.id === clubId);
+          watchlisted  = wl.some(w => w.id === clubId);
+        } catch {}
+      }
+
+      const eventsHtml = (club.events||[]).length
+        ? `<div class="tag-list">${(club.events||[]).map(e=>`<span class="tag">${escHtml(e)}</span>`).join('')}</div>`
+        : '<p class="text-muted text-small">No events listed yet.</p>';
+
+      const recruitBadge = club.recruit_status
+        ? `<span class="recruit-badge recruit-${club.recruit_status==='open'?'open':club.recruit_status==='closed'?'closed':'soon'}">${club.recruit_status==='open'?'● Recruiting Now':club.recruit_status==='closed'?'○ Applications Closed':'◎ Opening Soon'}</span>`
+        : '';
+
+      const ratingHtml = club.avg_rating
+        ? `<span style="color:var(--warning);font-weight:700">★ ${club.avg_rating.toFixed(1)}</span> <span class="text-small text-muted">(${club.review_count||0} reviews)</span>`
+        : '<span class="text-small text-muted">No reviews yet</span>';
+
+      document.getElementById('club-content').innerHTML = `
+        <!-- Hero -->
+        <div class="club-hero">
+          ${club.image_url?`<img src="${escHtml(club.image_url)}" alt="${escHtml(club.name)}">`:''}
+          <div class="club-hero-overlay" style="background:linear-gradient(to bottom,${col}18 0%,rgba(0,0,0,.72) 100%)"></div>
+          <div class="club-hero-content">
+            <div class="club-logo-big">${club.icon||'🎯'}</div>
+            <div>
+              <div class="club-detail-name">${escHtml(club.name)}</div>
+              <div style="color:rgba(255,255,255,.72);font-size:.83rem">${escHtml(club.tagline)}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Meta bar -->
+        <div style="display:flex;gap:.65rem;flex-wrap:wrap;align-items:center;margin:1.1rem 0 .9rem">
+          <span class="domain-badge" style="background:${col}18;color:${col};border:1px solid ${col}30;font-size:.76rem;padding:.28rem .7rem">${club.domain}</span>
+          ${recruitBadge}
+          <span class="text-muted text-small">👥 ${club.members} members</span>
+          <span class="text-muted text-small">📅 Founded ${club.founded}</span>
+          <span style="font-size:.83rem">${ratingHtml}</span>
+          ${club.email?`<a href="mailto:${escHtml(club.email)}" class="text-muted text-small">✉️ ${escHtml(club.email)}</a>`:''}
+          <div style="margin-left:auto;display:flex;gap:.45rem;flex-wrap:wrap">
+            ${user?`
+              <button class="btn btn-secondary btn-sm" id="bookmark-btn" onclick="toggleBookmark()">${bookmarked?'🔖 Saved':'🔖 Save'}</button>
+              <button class="btn btn-secondary btn-sm" id="watchlist-btn" onclick="toggleWatchlist()">${watchlisted?'👁 Watching':'+ Watchlist'}</button>
+            `:`<a href="/login.html" class="btn btn-secondary btn-sm">Login to Save</a>`}
+          </div>
+        </div>
+
+        <!-- Tags -->
+        <div class="tag-list" style="margin-bottom:1.15rem">
+          ${(club.tags||[]).map(t=>`<span class="tag" style="color:${col};border-color:${col}28">#${escHtml(t)}</span>`).join('')}
+        </div>
+
+        <!-- Content grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.1rem;margin-bottom:1.1rem">
+          <div class="card">
+            <h3 style="font-family:var(--font-serif);font-weight:700;font-size:.92rem;margin-bottom:.8rem">📖 About</h3>
+            <p style="font-size:.86rem;line-height:1.72;color:var(--ink2)">${escHtml(club.description)}</p>
+          </div>
+          <div class="card">
+            <h3 style="font-family:var(--font-serif);font-weight:700;font-size:.92rem;margin-bottom:.8rem">🎪 Events</h3>
+            ${eventsHtml}
+          </div>
+        </div>
+
+        ${club.recruitment_info?`
+        <div class="card" style="margin-bottom:1.1rem">
+          <h3 style="font-family:var(--font-serif);font-weight:700;font-size:.92rem;margin-bottom:.75rem">📋 How to Join</h3>
+          <p style="font-size:.86rem;line-height:1.72;color:var(--ink2)">${escHtml(club.recruitment_info)}</p>
+        </div>`:''}
+
+        <!-- Reviews section -->
+        <div class="card" style="margin-bottom:1.1rem" id="reviews-section">
+          <div class="section-header" style="margin-bottom:.9rem">
+            <span class="section-title" style="font-size:1rem">⭐ Reviews</span>
+            ${user?`<button class="btn btn-primary btn-sm" onclick="openReviewForm()">Write a Review</button>`:`<a href="/login.html" class="btn btn-secondary btn-sm">Login to Review</a>`}
+          </div>
+
+          <!-- Review form (hidden by default) -->
+          <div id="review-form" style="display:none;background:var(--paper3);border-radius:var(--radius);padding:1rem;margin-bottom:.9rem;border:1px solid var(--border)">
+            <div class="form-group" style="margin-bottom:.7rem">
+              <label class="form-label">Your Rating</label>
+              <div class="stars-input" id="star-input">
+                <span onclick="setRating(1)">★</span>
+                <span onclick="setRating(2)">★</span>
+                <span onclick="setRating(3)">★</span>
+                <span onclick="setRating(4)">★</span>
+                <span onclick="setRating(5)">★</span>
+              </div>
+              <div id="rating-hint" class="form-hint">Click to rate</div>
+            </div>
+            <div class="form-group" style="margin-bottom:.7rem">
+              <label class="form-label">What did you like?</label>
+              <textarea class="form-textarea" id="review-liked" placeholder="The community, events, learning opportunities…" style="min-height:60px"></textarea>
+            </div>
+            <div class="form-group" style="margin-bottom:.85rem">
+              <label class="form-label">What could be better?</label>
+              <textarea class="form-textarea" id="review-improved" placeholder="Suggestions for improvement…" style="min-height:60px"></textarea>
+            </div>
+            <div id="review-err" class="alert alert-error" style="display:none"></div>
+            <div style="display:flex;gap:.55rem;justify-content:flex-end">
+              <button class="btn btn-secondary btn-sm" onclick="closeReviewForm()">Cancel</button>
+              <button class="btn btn-primary btn-sm" onclick="submitReview()">Submit Review →</button>
+            </div>
+          </div>
+
+          <div id="reviews-list">
+            <div class="loading-center" style="padding:1.5rem"><span class="spinner"></span></div>
+          </div>
+        </div>
+
+        <!-- Footer actions -->
+        <div style="display:flex;gap:.65rem;flex-wrap:wrap">
+          <a href="/forum.html?club=${clubId}" class="btn btn-secondary btn-sm">💬 Discuss on Forum</a>
+          <a href="/clubs.html" class="btn btn-ghost btn-sm">← All Clubs</a>
+        </div>`;
+
+      loadReviews();
+    } catch(e) {
+      document.getElementById('club-content').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">😕</div><div class="empty-title">Club not found</div>
+          <div class="empty-sub">${e.message}</div>
+          <a href="/clubs.html" class="btn btn-secondary" style="margin-top:1rem">← All Clubs</a>
+        </div>`;
+    }
+  }
+
+  // ── Reviews ────────────────────────────────────────────────
+  let selectedRating = 0;
+  const ratingLabels = {1:'Poor',2:'Fair',3:'Good',4:'Very Good',5:'Excellent'};
+
+  function setRating(n) {
+    selectedRating = n;
+    document.querySelectorAll('#star-input span').forEach((s,i)=>s.classList.toggle('on',i<n));
+    document.getElementById('rating-hint').textContent = ratingLabels[n]||'';
+  }
+
+  function openReviewForm()  { document.getElementById('review-form').style.display='block'; }
+  function closeReviewForm() { document.getElementById('review-form').style.display='none'; }
+
+  async function submitReview() {
+    const err = document.getElementById('review-err');
+    err.style.display='none';
+    if (!selectedRating) { err.textContent='Please select a rating'; err.style.display='block'; return; }
+    const liked    = document.getElementById('review-liked').value.trim();
+    const improved = document.getElementById('review-improved').value.trim();
+    try {
+      await api.createReview({club_id:clubId, rating:selectedRating, liked, improved});
+      closeReviewForm();
+      toast('Review submitted!');
+      loadClub();
+    } catch(e) { err.textContent=e.message; err.style.display='block'; }
+  }
+
+  async function loadReviews() {
+    const list = document.getElementById('reviews-list');
+    try {
+      const reviews = await api.reviews(clubId);
+      if (!reviews.length) {
+        list.innerHTML=`<div class="text-muted text-small" style="padding:.5rem 0">No reviews yet — be the first!</div>`;
+        return;
+      }
+      list.innerHTML = (reviews||[]).map(r => {
+        const stars = '★'.repeat(r.rating)+'☆'.repeat(5-r.rating);
+        const user = Auth.getUser();
+        return `<div class="review-card">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.6rem;margin-bottom:.5rem;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:.45rem;flex-wrap:wrap">
+              ${avatarHtml(r.author?.name,24)}
+              <span style="font-size:.8rem;font-weight:600">${escHtml(r.author?.name||'?')}</span>
+              ${roleBadge(r.author?.role)}
+              ${r.author?.role==='student'?yearBadge(r.author?.year):''}
+            </div>
+            <div style="display:flex;align-items:center;gap:.5rem">
+              <span style="color:var(--warning);letter-spacing:.05rem;font-size:.9rem">${stars}</span>
+              <span class="text-small text-muted">${timeAgo(r.created_at)}</span>
+              ${r.is_mine||user?.role==='club_admin'||user?.role==='owner'?`<button class="btn btn-ghost btn-sm" style="color:var(--danger);font-size:.7rem;padding:.1rem .38rem" onclick="deleteReview('${r.id}')">🗑</button>`:''}
+            </div>
+          </div>
+          ${r.liked?`<div style="font-size:.82rem;margin-bottom:.3rem"><span style="color:var(--success);font-weight:600">✓ Liked: </span><span style="color:var(--ink2)">${escHtml(r.liked)}</span></div>`:''}
+          ${r.improved?`<div style="font-size:.82rem"><span style="color:var(--warning);font-weight:600">↑ Improve: </span><span style="color:var(--ink2)">${escHtml(r.improved)}</span></div>`:''}
+        </div>`;
+      }).join('');
+    } catch(e) {
+      list.innerHTML=`<div class="alert alert-error">${e.message}</div>`;
+    }
+  }
+
+  async function deleteReview(id) {
+    if (!confirm('Delete your review?')) return;
+    try { await api.deleteReview(id); toast('Review deleted'); loadClub(); }
+    catch(e) { toast(e.message,'error'); }
+  }
+
+  // ── Bookmark / Watchlist ───────────────────────────────────
+  async function toggleBookmark() {
+    if (!Auth.isLoggedIn()) { window.location.href='/login.html'; return; }
+    const btn = document.getElementById('bookmark-btn');
+    const saved = btn.textContent.includes('Saved');
+    try {
+      if (saved) { await api.removeBookmark(clubId); btn.textContent='🔖 Save'; toast('Removed'); }
+      else        { await api.addBookmark({club_id:clubId}); btn.textContent='🔖 Saved'; toast('Saved!'); }
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  async function toggleWatchlist() {
+    if (!Auth.isLoggedIn()) { window.location.href='/login.html'; return; }
+    const btn = document.getElementById('watchlist-btn');
+    const watching = btn.textContent.includes('Watching');
+    try {
+      if (watching) { await api.removeWatchlist(clubId); btn.textContent='+ Watchlist'; toast('Removed'); }
+      else           { await api.addWatchlist({club_id:clubId,note:''}); btn.textContent='👁 Watching'; toast('Added!'); }
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  loadClub();
+</script>
+</body>
+</html>

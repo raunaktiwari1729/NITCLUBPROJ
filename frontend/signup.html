@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up — NIT KKR Compass</title>
+  <link rel="stylesheet" href="/css/style.css?v=11">
+  <script src="/js/loader.js?v=11"></script>
+  <style>
+    .signup-step.hidden{display:none}
+    .otp-digits{display:flex;gap:.6rem;justify-content:center;margin:1.4rem 0}
+    .otp-digit{width:48px;height:56px;border:2px solid var(--border);border-radius:12px;background:var(--paper2);color:var(--ink);font-size:1.5rem;font-weight:800;font-family:var(--font-serif);text-align:center;transition:border-color .25s var(--ease),box-shadow .25s var(--ease);outline:none}
+    .otp-digit:focus{border-color:var(--red);box-shadow:0 0 0 3px var(--red-bg)}
+    .otp-digit.filled{border-color:var(--red);background:var(--red-bg)}
+    .otp-email-badge{display:inline-flex;align-items:center;gap:.4rem;background:var(--red-bg);border:1px solid var(--red-border);border-radius:20px;padding:.28rem .9rem;font-size:.82rem;font-weight:600;color:var(--red);margin:.6rem auto .2rem}
+    .otp-resend{text-align:center;font-size:.8rem;color:var(--ink3);margin-top:.8rem}
+    .otp-resend button{background:none;border:none;color:var(--red);font-weight:700;cursor:pointer;font-size:.8rem;padding:0}
+    .otp-resend button:disabled{opacity:.4;cursor:not-allowed}
+    .step-indicator{display:flex;align-items:center;justify-content:center;gap:.4rem;margin-bottom:1.6rem}
+    .step-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .3s var(--ease)}
+    .step-dot.active{width:24px;border-radius:4px;background:var(--red)}
+    .step-dot.done{background:#4ade80}
+    .role-selector{display:grid;grid-template-columns:1fr 1fr;gap:.52rem;margin-bottom:1rem}
+  </style>
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+<div class="auth-page">
+  <div class="auth-card">
+
+    <div style="text-align:center;margin-bottom:1.2rem">
+      <div style="display:inline-flex;width:56px;height:56px;border-radius:16px;background:var(--red);align-items:center;justify-content:center;font-size:1.6rem;margin-bottom:.8rem;box-shadow:var(--shadow-red)">🎓</div>
+      <div class="auth-title">Create Account</div>
+      <div class="auth-sub">Join NIT KKR Club Compass</div>
+    </div>
+
+    <div class="step-indicator">
+      <div class="step-dot active" id="sdot-1"></div>
+      <div class="step-dot" id="sdot-2"></div>
+    </div>
+
+    <!-- STEP 1: Form -->
+    <div id="step-form" class="signup-step">
+      <div style="margin-bottom:1.1rem">
+        <div class="form-label">I am a…</div>
+        <div class="role-selector">
+          <div class="role-option active" id="role-student" onclick="selectRole('student')">
+            <div class="role-icon">🎓</div><div class="role-name">Student</div>
+            <div style="font-size:.63rem;color:var(--ink3);margin-top:.12rem">All years</div>
+          </div>
+          <div class="role-option" id="role-club_admin" onclick="selectRole('club_admin')">
+            <div class="role-icon">🛡</div><div class="role-name">Club Admin</div>
+            <div style="font-size:.63rem;color:var(--ink3);margin-top:.12rem">Manage Clubs</div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input class="form-input" id="name" type="text" placeholder="Your full name" autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="email" type="email" placeholder="123456789@nitkkr.ac.in" autocomplete="email" oninput="handleEmailInput(this.value)">
+        <div class="form-hint">Only @nitkkr.ac.in emails are accepted</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Roll Number</label>
+        <input class="form-input" id="roll" type="text" placeholder="e.g. 124101001" maxlength="9" oninput="handleRollInput(this.value)">
+        <div class="roll-detect" id="roll-detect"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div style="position:relative">
+          <input class="form-input" id="password" type="password" placeholder="Min 8 characters" autocomplete="new-password">
+          <button type="button" onclick="togglePwd()" style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--ink3);cursor:pointer;font-size:.95rem">👁</button>
+        </div>
+      </div>
+      <div class="form-group" id="secret-key-group" style="display:none">
+        <label class="form-label">Club Admin Key</label>
+        <input class="form-input" id="secret-key" type="password" placeholder="Contact Student Affairs office">
+        <div class="form-hint">Required for Club Admin role</div>
+      </div>
+      <div id="signup-err" class="alert alert-error" style="display:none"></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:.35rem" id="send-otp-btn" onclick="sendOtp()">
+        Send OTP to Email →
+      </button>
+      <div style="text-align:center;margin-top:1.1rem;font-size:.82rem;color:var(--ink2)">
+        Already have an account? <a href="/login.html" style="color:var(--red);font-weight:700">Log in</a>
+      </div>
+      <div style="text-align:center;margin-top:.6rem;font-size:.78rem;color:var(--ink3)">
+        Faculty / Staff? <a href="/admin-login.html" style="color:var(--red)">Faculty Login →</a>
+      </div>
+    </div>
+
+    <!-- STEP 2: OTP -->
+    <div id="step-otp" class="signup-step hidden">
+      <div style="text-align:center">
+        <div style="font-size:2rem;margin-bottom:.5rem">📧</div>
+        <div style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:.3rem">Check your inbox</div>
+        <div style="font-size:.83rem;color:var(--ink2)">We sent a 6-digit OTP to</div>
+        <div class="otp-email-badge" id="otp-email-display">—</div>
+        <div style="font-size:.76rem;color:var(--ink3);margin-top:.4rem">Also check your spam folder</div>
+      </div>
+      <div class="otp-digits">
+        <input class="otp-digit" id="d0" type="text" inputmode="numeric" maxlength="1" oninput="otpInput(this,0)" onkeydown="otpKey(event,0)">
+        <input class="otp-digit" id="d1" type="text" inputmode="numeric" maxlength="1" oninput="otpInput(this,1)" onkeydown="otpKey(event,1)">
+        <input class="otp-digit" id="d2" type="text" inputmode="numeric" maxlength="1" oninput="otpInput(this,2)" onkeydown="otpKey(event,2)">
+        <input class="otp-digit" id="d3" type="text" inputmode="numeric" maxlength="1" oninput="otpInput(this,3)" onkeydown="otpKey(event,3)">
+        <input class="otp-digit" id="d4" type="text" inputmode="numeric" maxlength="1" oninput="otpInput(this,4)" onkeydown="otpKey(event,4)">
+        <input class="otp-digit" id="d5" type="text" inputmode="numeric" maxlength="1" oninput="otpInput(this,5)" onkeydown="otpKey(event,5)">
+      </div>
+      <div id="otp-err" class="alert alert-error" style="display:none;margin-bottom:.8rem"></div>
+      <button class="btn btn-primary" style="width:100%" id="verify-btn" onclick="verifyOtp()">
+        Verify &amp; Create Account →
+      </button>
+      <div class="otp-resend">
+        <span id="otp-timer-wrap">Resend OTP in <strong id="otp-timer">60</strong>s</span>
+        <span id="otp-resend-wrap" style="display:none">
+          Didn't receive it? <button id="resend-btn" onclick="resendOtp()">Resend OTP</button>
+        </span>
+      </div>
+      <button onclick="goBack()" style="width:100%;margin-top:.8rem;background:none;border:1px solid var(--border);border-radius:var(--radius);padding:.5rem;color:var(--ink2);cursor:pointer;font-size:.82rem;transition:all .25s var(--ease)"
+        onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'"
+        onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--ink2)'">
+        ← Back &amp; Edit Details
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<footer id="footer"></footer>
+<script src="/config.js?v=11"></script>
+<script src="/js/api.js?v=11"></script>
+<script src="/js/auth.js?v=11"></script>
+<script src="/js/app.js?v=11"></script>
+<script>
+  const EJ_SERVICE  = 'service_mtt7ftv';
+  const EJ_TEMPLATE = 'template_egz767e';
+  const EJ_PUBLIC_KEY = 'SIzhwclV2X69cJ4R_';
+
+  let generatedOtp = '', otpExpiry = 0, timerInterval = null, selectedRole = 'student';
+
+  Auth.redirectIfLoggedIn();
+  renderNavbar();
+  renderFooter();
+
+  // Roll prefix → year (based on batch year in roll number)
+  // Roll format: 12YYBBNNN where YY=batch, BB=branch code, NNN=number
+  // 1241xx = 2024 batch = 1st year (fresher), 1231xx = 2023 = 2nd year, etc.
+  const YEAR_MAP   = {'1251':1,'1241':1,'1231':2,'1221':3,'1211':4};
+  const YEAR_LABEL = {1:'1st Year / Fresher (2024 Batch)',2:'2nd Year (2023 Batch)',3:'3rd Year (2022 Batch)',4:'4th Year (2021 Batch)'};
+
+  // Branch codes from NIT KKR 2024 roll sheet (PDF)
+  const BRANCH_MAP = {
+    '01':'CE','02':'CS','03':'IT','04':'EE','05':'EC',
+    '06':'ME','07':'PI','08':'AI','09':'II','10':'MC',
+    '11':'RA','12':'AD','13':'MV','14':'SE','15':'BA',
+    '16':'MCA','17':'MBA','18':'MSc','19':'PhD'
+  };
+  const BRANCH_FULL = {
+    'CE':'Civil Engineering','CS':'Computer Science','IT':'Information Technology',
+    'EE':'Electrical Engineering','EC':'Electronics & Comm.','ME':'Mechanical Engineering',
+    'PI':'Production & Industrial','AI':'AI & Data Science','II':'Industrial Internet',
+    'MC':'MCA','RA':'Robotics & Automation','AD':'Advanced Manufacturing',
+    'MV':'Mechatronics','SE':'Software Engineering','BA':'Business Analytics',
+    'MCA':'MCA','MBA':'MBA','MSc':'M.Sc','PhD':'PhD'
+  };
+
+  function selectRole(role) {
+    selectedRole = role;
+    document.querySelectorAll('.role-option').forEach(el => el.classList.remove('active'));
+    document.getElementById('role-'+role)?.classList.add('active');
+    const sg = document.getElementById('secret-key-group');
+    sg.style.display = (role === 'club_admin') ? 'block' : 'none';
+  }
+
+  function handleEmailInput(val) {
+    const roll = document.getElementById('roll');
+    const match = val.match(/^(\d+)@nitkkr\.ac\.in$/i);
+    if (match && !roll.value) { roll.value = match[1]; handleRollInput(match[1]); }
+  }
+
+  function handleRollInput(val) {
+    document.getElementById('roll').value = val;
+    const detect = document.getElementById('roll-detect');
+    if (val.length < 4) { detect.classList.remove('show'); return; }
+    const prefix = val.slice(0, 4), year = YEAR_MAP[prefix];
+    const bcode  = val.slice(4, 6);
+    const branch = BRANCH_MAP[bcode] || bcode.toUpperCase();
+    const bfull  = BRANCH_FULL[branch] || branch;
+    if (year) {
+      detect.innerHTML = '✅ Detected: <strong>' + YEAR_LABEL[year] + '</strong> · <strong>' + branch + '</strong> — ' + bfull;
+      detect.style.cssText = ''; detect.classList.add('show');
+    } else if (val.length >= 4) {
+      detect.innerHTML = '⚠️ Unknown prefix <strong>' + prefix + '</strong> — please verify your roll number';
+      detect.style.background = 'rgba(229,9,20,.07)'; detect.style.color = 'var(--danger)'; detect.style.borderColor = 'rgba(229,9,20,.2)';
+      detect.classList.add('show');
+    }
+  }
+
+  function togglePwd() { const f = document.getElementById('password'); f.type = f.type === 'password' ? 'text' : 'password'; }
+  function generateOtp() { return String(Math.floor(100000 + Math.random() * 900000)); }
+
+  function startTimer(s = 60) {
+    clearInterval(timerInterval);
+    document.getElementById('otp-timer-wrap').style.display = '';
+    document.getElementById('otp-resend-wrap').style.display = 'none';
+    let r = s; document.getElementById('otp-timer').textContent = r;
+    timerInterval = setInterval(() => {
+      r--; document.getElementById('otp-timer').textContent = r;
+      if (r <= 0) { clearInterval(timerInterval); document.getElementById('otp-timer-wrap').style.display = 'none'; document.getElementById('otp-resend-wrap').style.display = ''; }
+    }, 1000);
+  }
+
+  function showStep(step) {
+    document.getElementById('step-form').classList.toggle('hidden', step !== 1);
+    document.getElementById('step-otp').classList.toggle('hidden', step !== 2);
+    document.getElementById('sdot-1').className = 'step-dot ' + (step === 1 ? 'active' : 'done');
+    document.getElementById('sdot-2').className = 'step-dot ' + (step === 2 ? 'active' : '');
+  }
+
+  function goBack() {
+    clearInterval(timerInterval); showStep(1);
+    for (let i = 0; i < 6; i++) { const d = document.getElementById('d' + i); d.value = ''; d.classList.remove('filled'); }
+    document.getElementById('otp-err').style.display = 'none';
+  }
+
+  function otpInput(el, idx) {
+    el.value = el.value.replace(/\D/g, '').slice(-1);
+    el.classList.toggle('filled', el.value !== '');
+    if (el.value && idx < 5) document.getElementById('d' + (idx + 1)).focus();
+    const code = Array.from({length: 6}, (_, i) => document.getElementById('d' + i).value).join('');
+    if (code.length === 6) verifyOtp();
+  }
+
+  function otpKey(e, idx) {
+    if (e.key === 'Backspace' && !e.target.value && idx > 0) document.getElementById('d' + (idx - 1)).focus();
+  }
+
+  document.addEventListener('paste', function(e) {
+    const active = document.activeElement;
+    if (!active || !active.classList.contains('otp-digit')) return;
+    const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasted.length >= 1) {
+      e.preventDefault();
+      for (let i = 0; i < 6; i++) { const d = document.getElementById('d' + i); d.value = pasted[i] || ''; d.classList.toggle('filled', !!pasted[i]); }
+      document.getElementById('d' + Math.min(pasted.length, 5)).focus();
+      if (pasted.length === 6) verifyOtp();
+    }
+  });
+
+  async function sendOtpEmail(toName, toEmail, otp) {
+    const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        service_id: EJ_SERVICE, template_id: EJ_TEMPLATE, user_id: EJ_PUBLIC_KEY,
+        template_params: { to_name: toName, to_email: toEmail, otp: otp }
+      })
+    });
+    if (!res.ok) { const txt = await res.text(); throw new Error('EmailJS ' + res.status + ': ' + txt); }
+  }
+
+  async function sendOtp() {
+    const err = document.getElementById('signup-err'); err.style.display = 'none';
+    const name  = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    const roll  = document.getElementById('roll').value.trim();
+    const pass  = document.getElementById('password').value;
+
+    if (!name)  { err.textContent = 'Enter your full name'; err.style.display = 'block'; return; }
+    if (!email) { err.textContent = 'Enter your email'; err.style.display = 'block'; return; }
+    if (!email.endsWith('@nitkkr.ac.in')) { err.textContent = 'Only @nitkkr.ac.in emails are accepted'; err.style.display = 'block'; return; }
+    if (!roll)  { err.textContent = 'Enter your roll number'; err.style.display = 'block'; return; }
+    if (!pass)  { err.textContent = 'Enter a password'; err.style.display = 'block'; return; }
+    if (pass.length < 8) { err.textContent = 'Password must be at least 8 characters'; err.style.display = 'block'; return; }
+
+    const btn = document.getElementById('send-otp-btn');
+    btn.disabled = true; btn.textContent = 'Sending OTP…';
+    try {
+      generatedOtp = generateOtp(); otpExpiry = Date.now() + 5 * 60 * 1000;
+      await sendOtpEmail(name.split(' ')[0], email, generatedOtp);
+      document.getElementById('otp-email-display').textContent = email;
+      showStep(2); startTimer(60);
+      document.getElementById('d0').focus();
+    } catch (e) {
+      err.textContent = 'Failed to send OTP: ' + (e.message || 'Unknown error');
+      err.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Send OTP to Email →';
+    }
+  }
+
+  async function resendOtp() {
+    const btn = document.getElementById('resend-btn'); btn.disabled = true; btn.textContent = 'Sending…';
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    const name  = document.getElementById('name').value.trim();
+    generatedOtp = generateOtp(); otpExpiry = Date.now() + 5 * 60 * 1000;
+    for (let i = 0; i < 6; i++) { const d = document.getElementById('d' + i); d.value = ''; d.classList.remove('filled'); }
+    document.getElementById('otp-err').style.display = 'none';
+    try { await sendOtpEmail(name.split(' ')[0], email, generatedOtp); toast('New OTP sent! ✉️'); startTimer(60); }
+    catch (e) { toast('Failed to resend. Try again.'); }
+    finally { btn.disabled = false; btn.textContent = 'Resend OTP'; }
+  }
+
+  async function verifyOtp() {
+    const err = document.getElementById('otp-err'); err.style.display = 'none';
+    const entered = Array.from({length: 6}, (_, i) => document.getElementById('d' + i).value).join('');
+    if (entered.length < 6) { err.textContent = 'Enter all 6 digits'; err.style.display = 'block'; return; }
+    if (Date.now() > otpExpiry) { err.textContent = 'OTP has expired. Please request a new one.'; err.style.display = 'block'; return; }
+    if (entered !== generatedOtp) {
+      err.textContent = '❌ Incorrect OTP. Please try again.'; err.style.display = 'block';
+      for (let i = 0; i < 6; i++) { const d = document.getElementById('d' + i); d.style.borderColor = 'var(--danger)'; setTimeout(() => d.style.borderColor = '', 1200); }
+      return;
+    }
+    const btn = document.getElementById('verify-btn'); btn.disabled = true; btn.textContent = 'Creating account…';
+    const name  = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    const roll  = document.getElementById('roll').value.trim();
+    const pass  = document.getElementById('password').value;
+    const sk    = document.getElementById('secret-key').value;
+    try {
+      const r = await api.signup({name, email, password: pass, role: selectedRole, roll_number: roll, secret_key: sk});
+      Auth.save(r.token, r.user); clearInterval(timerInterval);
+      toast('Welcome, ' + r.user.name.split(' ')[0] + '! 🎉');
+      setTimeout(() => window.location.href = '/dashboard.html', 600);
+    } catch (e) {
+      err.textContent = e.message;
+      if (e.message.toLowerCase().includes('already registered'))
+        err.innerHTML = 'This email is already registered. <a href="/login.html" style="color:var(--red)">Log in instead?</a>';
+      err.style.display = 'block'; btn.disabled = false; btn.textContent = 'Verify & Create Account →';
+    }
+  }
+</script>
+</body>
+</html>

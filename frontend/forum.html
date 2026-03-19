@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forum — NIT KKR Compass</title>
+  <link rel="stylesheet" href="/css/style.css?v=11">
+  
+<script src="/js/loader.js?v=11"></script>
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+
+<div class="page" style="max-width:1100px">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1.4rem;flex-wrap:wrap">
+    <div>
+      <h1 style="font-family:var(--font-serif);font-size:1.55rem;font-weight:800;letter-spacing:-.03em;margin-bottom:.2rem">Community Forum</h1>
+      <p class="text-muted text-small">Ask seniors, share experiences, post anonymously — real talk from NIT KKR students</p>
+    </div>
+    <div id="post-btns" style="display:none;gap:.45rem;flex-wrap:wrap"></div>
+  </div>
+
+  <!-- Tab bar: Posts / Polls -->
+  <div style="display:flex;gap:.35rem;margin-bottom:1.15rem;border-bottom:1px solid var(--border);padding-bottom:.75rem;align-items:center;flex-wrap:wrap">
+    <button class="tab-btn active" id="tab-posts" onclick="switchTab('posts')"> Posts</button>
+    <button class="tab-btn" id="tab-polls" onclick="switchTab('polls')">Polls</button>
+    <div style="flex:1"></div>
+    <div style="display:flex;gap:.35rem">
+      <button class="sort-btn active" id="sort-new" onclick="setSort('new')">New</button>
+      <button class="sort-btn" id="sort-top" onclick="setSort('top')">Top</button>
+    </div>
+    <select class="form-select" id="tag-filter" onchange="loadPosts()" style="width:auto;font-size:.8rem;padding:.3rem .65rem">
+      <option value="">All Tags</option>
+      <option value="fresher">Fresher Help</option>
+      <option value="senior">Senior Advice</option>
+      <option value="club">Club Discussion</option>
+      <option value="confession">Confession</option>
+      <option value="technical">Technical</option>
+      <option value="placement">Placement</option>
+      <option value="hostel">Hostel Life</option>
+      <option value="general">General</option>
+    </select>
+    <input class="form-input" id="search-posts" placeholder="Search…" style="width:165px;font-size:.8rem;padding:.3rem .65rem" oninput="filterPosts()">
+  </div>
+
+  <div class="forum-layout">
+    <div>
+      <div id="posts-container">
+        <div class="loading-center"><span class="spinner"></span></div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div>
+      <div class="card" style="margin-bottom:.85rem">
+        <h3 style="font-family:var(--font-serif);font-weight:700;font-size:.88rem;margin-bottom:.7rem">Guidelines</h3>
+        <ul style="font-size:.78rem;color:var(--ink2);line-height:2.1;list-style:none">
+          <li><span style="color:var(--red);margin-right:.25rem">•</span> Be respectful to everyone</li>
+          <li><span style="color:var(--red);margin-right:.25rem">•</span> Anon posts are truly anonymous</li>
+          <li><span style="color:var(--red);margin-right:.25rem">•</span> Seniors help juniors genuinely</li>
+          <li><span style="color:var(--red);margin-right:.25rem">•</span> No spam or self-promotion</li>
+          <li><span style="color:var(--red);margin-right:.25rem">•</span> Seniors & Admins can moderate</li>
+        </ul>
+      </div>
+      <div class="card" style="margin-bottom:.85rem">
+        <h3 style="font-family:var(--font-serif);font-weight:700;font-size:.88rem;margin-bottom:.7rem">Roles</h3>
+        <div style="display:flex;flex-direction:column;gap:.42rem;font-size:.78rem">
+          <div style="display:flex;align-items:center;gap:.45rem"><span class="badge badge-owner">Owner</span><span class="text-muted">Site owner</span></div>
+          <div style="display:flex;align-items:center;gap:.45rem"><span class="badge badge-admin">Admin</span><span class="text-muted">Club admins</span></div>
+          <div style="display:flex;align-items:center;gap:.45rem"><span class="badge badge-senior">Senior</span><span class="text-muted">2nd year+</span></div>
+          <div style="display:flex;align-items:center;gap:.45rem"><span class="badge badge-y1">1st Year</span><span class="text-muted">Freshers</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="font-family:var(--font-serif);font-weight:700;font-size:.88rem;margin-bottom:.7rem">Tags</h3>
+        <div class="tag-list">
+          <span class="tag" onclick="setTag('fresher')" style="cursor:pointer">#fresher</span>
+          <span class="tag" onclick="setTag('senior')" style="cursor:pointer">#senior</span>
+          <span class="tag" onclick="setTag('club')" style="cursor:pointer">#club</span>
+          <span class="tag" onclick="setTag('confession')" style="cursor:pointer">#confession</span>
+          <span class="tag" onclick="setTag('technical')" style="cursor:pointer">#technical</span>
+          <span class="tag" onclick="setTag('placement')" style="cursor:pointer">#placement</span>
+          <span class="tag" onclick="setTag('hostel')" style="cursor:pointer">#hostel</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New Post Modal -->
+<div class="post-modal-overlay" id="new-post-overlay" style="display:none" onclick="if(event.target===this)closeNewPost()">
+  <div class="post-modal" style="max-width:600px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.15rem">
+      <h2 style="font-family:var(--font-serif);font-size:1.1rem;font-weight:800" id="post-modal-title">✏️ New Post</h2>
+      <button class="btn btn-ghost btn-sm" onclick="closeNewPost()">✕</button>
+    </div>
+
+    <!-- Post type tabs -->
+    <div style="display:flex;gap:.38rem;margin-bottom:1rem;padding:.28rem;background:var(--paper3);border-radius:8px;width:fit-content" id="post-type-tabs">
+      <button class="ptype-btn active" onclick="setPostType('normal', event)">📝 Normal</button>
+      <button class="ptype-btn" onclick="setPostType('anon', event)">🎭 Anonymous</button>
+      <button class="ptype-btn" onclick="setPostType('poll', event)">📊 Poll</button>
+    </div>
+
+    <div id="anon-notice" class="alert alert-warning" style="display:none;font-size:.78rem">
+      🎭 Your name, year, and branch will be completely hidden. Even admins cannot see who posted.
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" id="post-title-label">Title</label>
+      <input class="form-input" id="post-title" placeholder="What's on your mind?" maxlength="200">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Body</label>
+      <textarea class="form-textarea" id="post-body" placeholder="Share your question or experience…" style="min-height:110px"></textarea>
+    </div>
+
+    <!-- Poll options (shown only for poll type) -->
+    <div id="poll-options-section" style="display:none">
+      <label class="form-label">Poll Options (min 2)</label>
+      <div id="poll-options-list">
+        <input class="form-input" placeholder="Option 1" style="margin-bottom:.42rem">
+        <input class="form-input" placeholder="Option 2" style="margin-bottom:.42rem">
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="addPollOption()" style="margin-bottom:.85rem">+ Add option</button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Tags <span class="text-muted" style="font-weight:400">(comma separated)</span></label>
+      <input class="form-input" id="post-tags" placeholder="e.g. fresher, club, confession">
+    </div>
+    <div id="new-post-err" class="alert alert-error" style="display:none"></div>
+    <div style="display:flex;gap:.65rem;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeNewPost()">Cancel</button>
+      <button class="btn btn-primary" id="submit-post-btn" onclick="submitPost()">Post →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Post Detail Modal -->
+<div class="post-modal-overlay" id="post-detail-overlay" style="display:none" onclick="if(event.target===this)closePostDetail()">
+  <div class="post-modal" id="post-detail-content" style="max-width:680px"></div>
+</div>
+
+<style>
+.tab-btn{padding:.35rem .85rem;border-radius:7px;font-size:.8rem;font-weight:600;background:none;border:none;color:var(--ink2);cursor:pointer;transition:all .15s}
+.tab-btn.active{background:var(--red);color:#fff}
+.tab-btn:hover:not(.active){color:var(--ink);background:var(--paper3)}
+.sort-btn{padding:.28rem .7rem;border-radius:6px;font-size:.77rem;font-weight:600;background:none;border:1px solid var(--border);color:var(--ink2);cursor:pointer;transition:all .15s}
+.sort-btn.active{background:var(--paper3);color:var(--ink);border-color:var(--border2)}
+.sort-btn:hover{color:var(--ink)}
+.ptype-btn{padding:.28rem .75rem;border-radius:6px;font-size:.78rem;font-weight:600;background:none;border:none;color:var(--ink2);cursor:pointer;transition:all .15s}
+.ptype-btn.active{background:var(--paper2);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.18)}
+
+/* Anonymous reveal tooltip */
+.anon-reveal { position:relative; cursor:default; }
+.anon-reveal[data-real] { cursor:help; }
+.anon-reveal .anon-hint {
+  font-size:.6rem; opacity:.55; font-style:italic;
+  text-decoration:underline dotted; margin-left:.2rem;
+}
+.anon-reveal[data-real]::after {
+  content: '👤 ' attr(data-real);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.92);
+  background: var(--p-navy, #0F2044);
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 600;
+  padding: .3rem .65rem;
+  border-radius: 7px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s ease, transform .18s ease;
+  box-shadow: 0 4px 14px rgba(0,0,0,.3);
+  z-index: 100;
+}
+.anon-reveal[data-real]::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 1px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--p-navy, #0F2044);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s ease;
+  z-index: 100;
+}
+.anon-reveal[data-real]:hover::after,
+.anon-reveal[data-real]:hover::before {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+</style>
+
+<footer id="footer"></footer>
+<script src="/config.js?v=11"></script>
+<script src="/js/api.js?v=11"></script>
+<script src="/js/auth.js?v=11"></script>
+<script src="/js/app.js?v=11"></script>
+<script>
+  let currentSort = 'new';
+  let allPosts = [];
+  let currentTab = 'posts';
+  let postType = 'normal';
+
+  renderNavbar('forum');
+  renderFooter();
+  initChatWidget();
+  const user = Auth.getUser();
+
+  if (user) {
+    document.getElementById('post-btns').style.display = 'flex';
+    document.getElementById('post-btns').innerHTML = `
+      <button class="btn btn-secondary btn-sm" onclick="openNewPost()">✏️ Post</button>
+      <button class="btn btn-secondary btn-sm" onclick="openNewPost('anon')">🎭 Anonymous</button>
+      <button class="btn btn-secondary btn-sm" onclick="openNewPost('poll')">📊 Poll</button>`;
+  }
+
+  // ── Tab switch ─────────────────────────────────────────────
+  function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    document.getElementById('tag-filter').style.display = tab === 'polls' ? 'none' : '';
+    if (tab === 'posts') loadPosts();
+    else loadPolls();
+  }
+
+  // ── Posts ──────────────────────────────────────────────────
+  async function loadPosts() {
+    const tag = document.getElementById('tag-filter').value;
+    const q   = `?sort=${currentSort}${tag?'&tag='+tag:''}`;
+    document.getElementById('posts-container').innerHTML = '<div class="loading-center"><span class="spinner"></span></div>';
+    try {
+      allPosts = await api.posts(q);
+      renderPosts(allPosts);
+    } catch(e) {
+      document.getElementById('posts-container').innerHTML = `<div class="alert alert-error">${e.message}</div>`;
+    }
+  }
+
+  function renderPosts(posts) {
+    if (!posts.length) {
+      document.getElementById('posts-container').innerHTML = `
+        <div class="empty-state"><div class="empty-icon">💬</div>
+        <div class="empty-title">No posts yet</div>
+        <div class="empty-sub">Be the first to start a conversation</div></div>`;
+      return;
+    }
+    document.getElementById('posts-container').innerHTML = (posts||[]).map(p => postCardHtml(p)).join('');
+  }
+
+  function postCardHtml(p) {
+    const tagsHtml = (p.tags||[]).map(t=>`<span class="post-tag">#${escHtml(t)}</span>`).join('');
+    const a = p.author;
+    const authorHtml = p.anonymous
+      ? (() => { const canReveal = ['senior','club_admin','owner'].includes(user?.role) && p.real_name; return `<span class="anon-tag anon-reveal" ${canReveal ? `data-real="${escHtml(p.real_name)}"` : ''}>🎭 Anonymous${canReveal ? ' <span class="anon-hint">hover</span>' : ''}</span>`; })()
+      : `${avatarHtml(a?.name,20)}<span style="font-size:.75rem;font-weight:600">${escHtml(a?.name||'?')}</span>${roleBadge(a?.role)}${a?.role==='student'?yearBadge(a?.year):''}`;
+    return `<div class="post-card" onclick="openPost('${p.id}')">
+      <div class="post-card-title">${escHtml(p.title)}</div>
+      <div class="post-card-body">${escHtml((p.body||'').slice(0,175))}${(p.body||'').length>175?'…':''}</div>
+      <div class="post-card-footer">
+        <div style="display:flex;align-items:center;gap:.38rem;flex:1;min-width:0;flex-wrap:wrap">${authorHtml}</div>
+        <div style="display:flex;align-items:center;gap:.45rem;flex-wrap:wrap">
+          ${tagsHtml}
+          <button class="upvote-btn ${p.upvoted?'upvoted':''}" onclick="doUpvote(event,'${p.id}',this)">
+            ▲ <span class="upvote-count">${p.upvotes}</span>
+          </button>
+          <span class="post-meta">💬 ${p.comment_count}</span>
+          <span class="post-meta">${timeAgo(p.created_at)}</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  async function doUpvote(e, id, btn) {
+    e.stopPropagation();
+    if (!Auth.isLoggedIn()) { toast('Login to upvote', 'error'); return; }
+    try {
+      const r = await api.upvote(id);
+      btn.classList.toggle('upvoted', r.upvoted);
+      btn.querySelector('.upvote-count').textContent = r.upvotes;
+    } catch(e) { toast(e.message, 'error'); }
+  }
+
+  async function openPost(id) {
+    const overlay = document.getElementById('post-detail-overlay');
+    const content = document.getElementById('post-detail-content');
+    overlay.style.display = 'flex';
+    content.innerHTML = '<div class="loading-center"><span class="spinner"></span></div>';
+    try {
+      const [post, comments] = await Promise.all([api.getPost(id), api.comments(id)]);
+      const a = post.author;
+      const canDelete = user && (!post.anonymous && user.id === a?.id || ['senior','club_admin','owner'].includes(user?.role));
+      const authorHtml = post.anonymous
+        ? (() => { const canReveal = ['senior','club_admin','owner'].includes(user?.role) && post.real_name; return `<span class="anon-tag anon-reveal" style="font-size:.82rem;padding:.18rem .55rem" ${canReveal ? `data-real="${escHtml(post.real_name)}"` : ''}>🎭 Anonymous Post${canReveal ? ' <span class="anon-hint">hover</span>' : ''}</span>`; })()
+        : `${avatarHtml(a?.name,26)}<span style="font-size:.83rem;font-weight:600">${escHtml(a?.name||'?')}</span>${roleBadge(a?.role)}${a?.role==='student'?yearBadge(a?.year):''}${a?.branch?`<span class="text-small text-muted">${a.branch}</span>`:''}`;
+      content.innerHTML = `
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.8rem;margin-bottom:1.1rem">
+          <h2 style="font-family:var(--font-serif);font-size:1.15rem;font-weight:800;flex:1">${escHtml(post.title)}</h2>
+          <button class="btn btn-ghost btn-sm" onclick="closePostDetail()">✕</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.9rem;flex-wrap:wrap">
+          ${authorHtml}
+          <span class="post-meta">${timeAgo(post.created_at)}</span>
+          <div style="margin-left:auto;display:flex;gap:.45rem">
+            <button class="upvote-btn ${post.upvoted?'upvoted':''}" onclick="doUpvote(event,'${post.id}',this)">▲ <span class="upvote-count">${post.upvotes}</span></button>
+            ${canDelete?`<button class="btn btn-danger btn-sm" onclick="deletePost('${post.id}')">🗑 Delete</button>`:''}
+          </div>
+        </div>
+        <div class="tag-list" style="margin-bottom:.9rem">${(post.tags||[]).map(t=>`<span class="post-tag">#${escHtml(t)}</span>`).join('')}</div>
+        <div style="font-size:.88rem;line-height:1.7;white-space:pre-wrap;color:var(--ink)">${escHtml(post.body)}</div>
+        <hr class="divider">
+        <div style="font-family:var(--font-serif);font-weight:700;font-size:.88rem;margin-bottom:.7rem">💬 ${comments.length} Comments</div>
+        <div id="comments-list">${(comments||[]).map(c=>commentHtml(c)).join('')}</div>
+        ${user ? `<div style="display:flex;gap:.6rem;margin-top:.9rem">
+          <textarea class="form-textarea" id="new-comment" placeholder="Write a comment…" style="min-height:65px;font-size:.84rem"></textarea>
+          <button class="btn btn-primary" style="align-self:flex-end;flex-shrink:0" onclick="addComment('${post.id}')">Post</button>
+        </div>` : `<div class="alert alert-info" style="font-size:.78rem"><a href="/login.html" style="color:inherit">Log in</a> to comment</div>`}`;
+    } catch(e) {
+      content.innerHTML = `<div class="alert alert-error">${e.message}</div>`;
+    }
+  }
+
+  function commentHtml(c) {
+    const a = c.author;
+    const authorHtml = c.anonymous
+      ? `<span class="anon-tag">🎭 Anonymous</span>`
+      : `${avatarHtml(a?.name,24)}<span style="font-size:.79rem;font-weight:600">${escHtml(a?.name||'?')}</span>${roleBadge(a?.role)}${a?.role==='student'?yearBadge(a?.year):''}`;
+    return `<div class="comment-item">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:.38rem;flex-wrap:wrap;margin-bottom:.28rem">
+          ${authorHtml}
+          <span class="post-meta">${timeAgo(c.created_at)}</span>
+          ${c.can_delete?`<button class="btn btn-ghost btn-sm" style="font-size:.67rem;padding:.1rem .38rem;color:var(--ink3);margin-left:auto" onclick="deleteComment('${c.id}',this)">🗑</button>`:''}
+        </div>
+        <div class="comment-body">${escHtml(c.body)}</div>
+      </div>
+    </div>`;
+  }
+
+  async function addComment(postId) {
+    const ta = document.getElementById('new-comment');
+    const body = ta.value.trim(); if (!body) return;
+    try {
+      const c = await api.addComment(postId, {body});
+      document.getElementById('comments-list').insertAdjacentHTML('beforeend', commentHtml(c));
+      ta.value = '';
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  async function deleteComment(id, btn) {
+    if (!confirm('Delete comment?')) return;
+    try { await api.delComment(id); btn.closest('.comment-item').remove(); toast('Deleted'); }
+    catch(e) { toast(e.message,'error'); }
+  }
+
+  async function deletePost(id) {
+    if (!confirm('Delete post and all comments?')) return;
+    try { await api.deletePost(id); closePostDetail(); loadPosts(); toast('Post deleted'); }
+    catch(e) { toast(e.message,'error'); }
+  }
+
+  function closePostDetail() { document.getElementById('post-detail-overlay').style.display = 'none'; }
+
+  // ── New Post Modal ─────────────────────────────────────────
+  function setPostType(type, evt) {
+    postType = type;
+    document.querySelectorAll('.ptype-btn').forEach(b=>b.classList.remove('active'));
+    (evt||event).target.classList.add('active');
+    document.getElementById('anon-notice').style.display = type==='anon'?'block':'none';
+    document.getElementById('poll-options-section').style.display = type==='poll'?'block':'none';
+    document.getElementById('post-modal-title').textContent =
+      type==='anon'?'🎭 Anonymous Post':type==='poll'?'📊 New Poll':'✏️ New Post';
+  }
+
+  function addPollOption() {
+    const list = document.getElementById('poll-options-list');
+    const count = list.querySelectorAll('input').length + 1;
+    const inp = document.createElement('input');
+    inp.className = 'form-input'; inp.placeholder = `Option ${count}`;
+    inp.style.marginBottom = '.42rem';
+    list.appendChild(inp);
+  }
+
+  function openNewPost(type) {
+    if (!Auth.isLoggedIn()) { window.location.href='/login.html'; return; }
+    document.getElementById('new-post-overlay').style.display='flex';
+    if (type) {
+      document.querySelectorAll('.ptype-btn').forEach((b,i)=>{
+        b.classList.toggle('active', ['normal','anon','poll'][i]===type);
+      });
+      postType = type;
+      document.getElementById('anon-notice').style.display = type==='anon'?'block':'none';
+      document.getElementById('poll-options-section').style.display = type==='poll'?'block':'none';
+      document.getElementById('post-modal-title').textContent =
+        type==='anon'?'🎭 Anonymous Post':type==='poll'?'📊 New Poll':'✏️ New Post';
+    }
+  }
+  function closeNewPost() {
+    document.getElementById('new-post-overlay').style.display='none';
+    postType='normal';
+    document.querySelectorAll('.ptype-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+    document.getElementById('anon-notice').style.display='none';
+    document.getElementById('poll-options-section').style.display='none';
+    document.getElementById('post-modal-title').textContent='✏️ New Post';
+  }
+
+  async function submitPost() {
+    const title = document.getElementById('post-title').value.trim();
+    const body  = document.getElementById('post-body').value.trim();
+    const tags  = document.getElementById('post-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
+    const err   = document.getElementById('new-post-err');
+    err.style.display='none';
+    if (!title) { err.textContent='Title is required'; err.style.display='block'; return; }
+    const btn = document.getElementById('submit-post-btn');
+    btn.disabled=true; btn.textContent='Posting…';
+    try {
+      if (postType==='poll') {
+        const opts = [...document.getElementById('poll-options-list').querySelectorAll('input')]
+          .map(i=>i.value.trim()).filter(Boolean);
+        if (opts.length<2) { err.textContent='Add at least 2 poll options'; err.style.display='block'; btn.disabled=false;btn.textContent='Post →';return; }
+        await api.createPoll({title,body,options:opts,tags});
+        closeNewPost(); toast('Poll created!'); loadPolls(); switchTab('polls');
+      } else if (postType==='anon') {
+        if (!body) { err.textContent='Body is required for anonymous posts'; err.style.display='block'; btn.disabled=false;btn.textContent='Post →';return; }
+        await api.createAnonPost({title,body,tags});
+        closeNewPost(); toast('Posted anonymously!'); loadPosts();
+      } else {
+        await api.createPost({title,body,tags});
+        closeNewPost(); toast('Post published!'); loadPosts();
+      }
+      document.getElementById('post-title').value='';
+      document.getElementById('post-body').value='';
+      document.getElementById('post-tags').value='';
+    } catch(e) { err.textContent=e.message; err.style.display='block'; }
+    btn.disabled=false; btn.textContent='Post →';
+  }
+
+  // ── Polls ──────────────────────────────────────────────────
+  let allPolls = [];
+
+  async function loadPolls() {
+    document.getElementById('posts-container').innerHTML='<div class="loading-center"><span class="spinner"></span></div>';
+    try {
+      allPolls = await api.polls();
+      renderPolls(allPolls);
+    } catch(e) {
+      document.getElementById('posts-container').innerHTML=`<div class="alert alert-error">${e.message}</div>`;
+    }
+  }
+
+  function renderPolls(polls) {
+    if (!polls.length) {
+      document.getElementById('posts-container').innerHTML=`
+        <div class="empty-state"><div class="empty-icon">📊</div>
+        <div class="empty-title">No polls yet</div>
+        <div class="empty-sub">Create the first poll and get opinions from the community</div></div>`;
+      return;
+    }
+    document.getElementById('posts-container').innerHTML = (polls||[]).map(p=>pollCardHtml(p)).join('');
+  }
+
+  function pollCardHtml(poll) {
+    const a = poll.author;
+    const voted = poll.my_vote !== null && poll.my_vote !== undefined;
+    const canDelete = user && (user.id===a?.id || ['senior','club_admin','owner'].includes(user?.role));
+    const optHtml = (poll.options||[]).map((o,i)=>`
+      <div class="poll-option ${voted&&poll.my_vote===i?'voted':''}" onclick="castVote('${poll.id}',${i},this.closest('.poll-wrap'))">
+        <div class="poll-bar" style="width:${voted?o.pct:0}%"></div>
+        <span class="poll-text">${escHtml(o.text)}</span>
+        ${voted?`<span class="poll-pct">${o.pct}%</span>`:''}
+      </div>`).join('');
+    return `<div class="post-card poll-wrap" data-poll-id="${poll.id}" onclick="">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.6rem;margin-bottom:.7rem">
+        <div class="post-card-title" style="margin-bottom:0">${escHtml(poll.title)}</div>
+        ${canDelete?`<button class="btn btn-ghost btn-sm" style="color:var(--danger);font-size:.72rem;flex-shrink:0" onclick="deletePollCard('${poll.id}',this)">🗑</button>`:''}
+      </div>
+      ${poll.body?`<div class="post-card-body">${escHtml(poll.body)}</div>`:''}
+      <div style="margin-bottom:.7rem">${optHtml}</div>
+      <div class="post-card-footer">
+        <div style="display:flex;align-items:center;gap:.38rem">${avatarHtml(a?.name,20)}
+          <span style="font-size:.75rem;font-weight:600">${escHtml(a?.name||'?')}</span>${roleBadge(a?.role)}
+        </div>
+        <div style="display:flex;align-items:center;gap:.45rem">
+          ${(poll.tags||[]).map(t=>`<span class="post-tag">#${escHtml(t)}</span>`).join('')}
+          <span class="post-meta">🗳 ${poll.total_votes} vote${poll.total_votes!==1?'s':''}</span>
+          <span class="post-meta">${timeAgo(poll.created_at)}</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  async function castVote(pollId, optIdx, card) {
+    if (!Auth.isLoggedIn()) { toast('Login to vote','error'); return; }
+    try {
+      const updated = await api.votePoll(pollId, optIdx);
+      // re-render just this poll card
+      const newHtml = document.createElement('div');
+      newHtml.innerHTML = pollCardHtml(updated);
+      card.replaceWith(newHtml.firstElementChild);
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  async function deletePollCard(id, btn) {
+    if (!confirm('Delete this poll?')) return;
+    try { await api.deletePoll(id); btn.closest('.poll-wrap').remove(); toast('Poll deleted'); }
+    catch(e) { toast(e.message,'error'); }
+  }
+
+  // ── Sort / filter ──────────────────────────────────────────
+  function setSort(s) {
+    currentSort=s;
+    document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById(`sort-${s}`).classList.add('active');
+    if (currentTab==='posts') loadPosts();
+  }
+  function setTag(t) { document.getElementById('tag-filter').value=t; loadPosts(); }
+  function filterPosts() {
+    const q=document.getElementById('search-posts').value.toLowerCase();
+    if (!q){renderPosts(allPosts);return;}
+    renderPosts(allPosts.filter(p=>p.title.toLowerCase().includes(q)||(p.body||'').toLowerCase().includes(q)));
+  }
+
+  loadPosts();
+</script>
+</body>
+</html>

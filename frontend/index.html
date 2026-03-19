@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NIT Club Compass — Find Your Tribe</title>
+  <link rel="stylesheet" href="/css/style.css?v=11">
+
+  <script src="/js/loader.js?v=11"></script>
+
+  <style>
+    /* ══════════════════════════════════════════
+       SCROLL ANIMATION SYSTEM
+       ══════════════════════════════════════════ */
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      overflow-x: hidden;
+    }
+
+    /* ── Word reveal animation ── */
+    .word-reveal-line {
+      overflow: hidden;
+      display: block;
+    }
+
+    .word-reveal-line .word {
+      display: inline-block;
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .word-reveal-line.revealed .word {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* ── Fade-up on scroll ── */
+    .scroll-fade {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .scroll-fade.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Fade-left / right ── */
+    .scroll-left {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .scroll-right {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .scroll-left.visible,
+    .scroll-right.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* ── Scale in ── */
+    .scroll-scale {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .scroll-scale.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* ── Stagger delay helpers ── */
+    .delay-1 {
+      transition-delay: 0.08s !important;
+    }
+
+    .delay-2 {
+      transition-delay: 0.16s !important;
+    }
+
+    .delay-3 {
+      transition-delay: 0.24s !important;
+    }
+
+    .delay-4 {
+      transition-delay: 0.32s !important;
+    }
+
+    .delay-5 {
+      transition-delay: 0.40s !important;
+    }
+
+    .delay-6 {
+      transition-delay: 0.48s !important;
+    }
+
+    /* ══════════════════════════════════════════
+       HERO — sticky parallax section
+       ══════════════════════════════════════════ */
+    .hero-sticky-wrapper {
+      position: relative;
+      height: 220vh;
+      /* tall enough to scroll through */
+    }
+
+    .hero-sticky-inner {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Parallax campus image */
+    .hero-bg-img {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      will-change: transform;
+      overflow: hidden;
+    }
+
+    .hero-bg-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 35%;
+      filter: saturate(0.9) brightness(0.55);
+      transform: scale(1.12);
+      will-change: transform;
+    }
+
+    /* Gradient fade overlay */
+    .hero-bg-img::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(to bottom,
+          rgba(15, 12, 35, 0.20) 0%,
+          rgba(15, 12, 35, 0.52) 40%,
+          rgba(15, 12, 35, 0.65) 78%,
+          rgba(240, 244, 255, 1) 110%);
+    }
+
+    /* Noise grain texture for cinematic depth */
+    .hero-grain {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    }
+
+    /* Hero content */
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 0 2rem 6rem;
+      max-width: 80%;
+      width: 100%;
+      will-change: transform, opacity;
+    }
+
+    .hero-eyebrow-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(10px);
+      color: rgba(255, 255, 255, 0.9);
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: .3rem 1rem;
+      border-radius: 30px;
+      margin-bottom: 1.6rem;
+      animation: fadeDown 0.6s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .hero-title-main {
+      font-family: var(--font-sans);
+      font-size: clamp(1.8rem, 5.5vw, 4rem);
+      font-weight: 900;
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      color: #fff;
+      margin-bottom: 1.2rem;
+      text-transform: uppercase;
+      text-shadow: 0 4px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .hero-title-main .line-gradient {
+      background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 60%, #4f46e5 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub-text {
+      font-size: 1.05rem;
+      color: rgba(255, 255, 255, 0.75);
+      line-height: 1.72;
+      margin-bottom: 2.2rem;
+      max-width: 540px;
+      margin-left: auto;
+      margin-right: auto;
+      animation: fadeUp 0.6s 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .hero-ctas {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      animation: fadeUp 0.6s 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .hero-ctas .btn-glass {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1.5px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      backdrop-filter: blur(12px);
+      transition: all .25s;
+    }
+
+    .hero-ctas .btn-glass:hover {
+      background: rgba(255, 255, 255, 0.22);
+      border-color: rgba(255, 255, 255, 0.5);
+      transform: translateY(-2px);
+    }
+
+    /* Scroll indicator arrow */
+    .hero-scroll-hint {
+      position: absolute;
+      bottom: 6.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: .5rem;
+      animation: fadeIn 1s 1.2s both;
+      color: rgba(255, 255, 255, 0.55);
+      font-size: .68rem;
+      font-weight: 600;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .scroll-mouse {
+      width: 24px;
+      height: 38px;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-radius: 12px;
+      display: flex;
+      justify-content: center;
+      padding-top: 6px;
+    }
+
+    .scroll-mouse-dot {
+      width: 4px;
+      height: 8px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.7);
+      animation: scrollBounce 1.8s ease-in-out infinite;
+    }
+
+    @keyframes scrollBounce {
+
+      0%,
+      100% {
+        transform: translateY(0);
+        opacity: 1;
+      }
+
+      60% {
+        transform: translateY(10px);
+        opacity: 0.2;
+      }
+    }
+
+    /* ══════════════════════════════════════════
+       MARQUEE / TICKER STRIP
+       ══════════════════════════════════════════ */
+    .marquee-section {
+      overflow: hidden;
+      padding: 1.1rem 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--paper2);
+    }
+
+    .marquee-track {
+      display: flex;
+      width: max-content;
+      animation: marqueeScroll 28s linear infinite;
+    }
+
+    .marquee-track.reverse {
+      animation-direction: reverse;
+      animation-duration: 22s;
+    }
+
+    .marquee-item {
+      display: inline-flex;
+      align-items: center;
+      gap: .6rem;
+      padding: 0 2rem;
+      font-family: var(--font-serif);
+      font-size: .82rem;
+      font-weight: 700;
+      color: var(--ink2);
+      white-space: nowrap;
+      letter-spacing: .02em;
+    }
+
+    .marquee-item .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    @keyframes marqueeScroll {
+      from {
+        transform: translateX(0);
+      }
+
+      to {
+        transform: translateX(-50%);
+      }
+    }
+
+    .marquee-section:hover .marquee-track {
+      animation-play-state: paused;
+    }
+
+    /* ══════════════════════════════════════════
+       SECTION LAYOUTS
+       ══════════════════════════════════════════ */
+    .home-section {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 5rem 1.4rem;
+    }
+
+    /* Big section labels like hariomjangra.dev */
+    .section-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      font-size: .7rem;
+      font-weight: 700;
+      color: var(--red);
+      background: rgba(91, 35, 255, 0.08);
+      border: 1px solid rgba(91, 35, 255, 0.18);
+      padding: .22rem .82rem;
+      border-radius: 20px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 1.2rem;
+    }
+
+    .section-big-title {
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -.03em;
+      margin-bottom: 1.2rem;
+    }
+
+    /* ══════════════════════════════════════════
+       STATS ROW
+       ══════════════════════════════════════════ */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      margin-bottom: 5rem;
+    }
+
+    .stat-cell {
+      background: var(--paper2);
+      padding: 2.2rem 1.5rem;
+      text-align: center;
+      transition: background .2s;
+    }
+
+    .stat-cell:hover {
+      background: var(--paper3);
+    }
+
+    .stat-num {
+      font-family: var(--font-serif);
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -.04em;
+      margin-bottom: .3rem;
+    }
+
+    .stat-label-text {
+      font-size: .8rem;
+      color: var(--ink2);
+      font-weight: 500;
+    }
+
+    /* ══════════════════════════════════════════
+       HOW IT WORKS — big numbered steps
+       ══════════════════════════════════════════ */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+    }
+
+    .step-cell {
+      background: var(--paper2);
+      padding: 2.8rem 2.4rem;
+      position: relative;
+      transition: background .2s;
+      overflow: hidden;
+    }
+
+    .step-cell:hover {
+      background: var(--paper3);
+    }
+
+    .step-number {
+      font-family: var(--font-serif);
+      font-size: 5rem;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--border);
+      position: absolute;
+      top: 1.2rem;
+      right: 1.6rem;
+      letter-spacing: -.06em;
+      user-select: none;
+      transition: color .3s;
+    }
+
+    .step-cell:hover .step-number {
+      color: rgba(91, 35, 255, .12);
+    }
+
+    .step-icon-wrap {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .step-title {
+      font-family: var(--font-serif);
+      font-size: 1.08rem;
+      font-weight: 800;
+      margin-bottom: .5rem;
+    }
+
+    .step-desc {
+      font-size: .84rem;
+      color: var(--ink2);
+      line-height: 1.65;
+    }
+
+    /* ══════════════════════════════════════════
+       QUICK LINKS — big card row
+       ══════════════════════════════════════════ */
+    .links-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+    }
+
+    .link-cell {
+      background: var(--paper2);
+      padding: 2.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      transition: background .2s;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .link-cell:hover {
+      background: var(--paper3);
+    }
+
+    .link-cell-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+    }
+
+    .link-cell-title {
+      font-family: var(--font-serif);
+      font-size: 1rem;
+      font-weight: 800;
+    }
+
+    .link-cell-desc {
+      font-size: .81rem;
+      color: var(--ink2);
+    }
+
+    .link-cell-arrow {
+      margin-top: auto;
+      font-size: .8rem;
+      font-weight: 700;
+      color: var(--red);
+      display: flex;
+      align-items: center;
+      gap: .3rem;
+      transition: gap .2s;
+    }
+
+    .link-cell:hover .link-cell-arrow {
+      gap: .6rem;
+    }
+
+    /* ══════════════════════════════════════════
+       RESPONSIVE
+       ══════════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .steps-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .links-row {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-title-main {
+        font-size: clamp(2rem, 9vw, 3rem);
+      }
+
+      .hero-sticky-wrapper {
+        height: 180vh;
+      }
+
+      .hero-content {
+        padding: 0 1.2rem 5rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .stats-row {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* ══════════════════════════════════════════
+       FAQ ACCORDION
+       ══════════════════════════════════════════ */
+    .faq-list {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      background: var(--paper2);
+    }
+
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      transition: background .2s;
+    }
+
+    .faq-item:last-child {
+      border-bottom: none;
+    }
+
+    .faq-item.faq-open {
+      background: rgba(91, 35, 255, 0.03);
+    }
+
+    .faq-q {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1.35rem 1.6rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-align: left;
+      font-family: var(--font-body);
+      font-size: .97rem;
+      font-weight: 600;
+      color: var(--ink);
+      transition: color .2s;
+    }
+
+    .faq-q:hover {
+      color: var(--red);
+    }
+
+    .faq-item.faq-open .faq-q {
+      color: var(--red);
+    }
+
+    /* The +/× icon */
+    .faq-icon {
+      width: 26px;
+      height: 26px;
+      flex-shrink: 0;
+      border-radius: 8px;
+      border: 1.5px solid var(--border2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .3s var(--ease);
+      position: relative;
+    }
+
+    .faq-icon::before,
+    .faq-icon::after {
+      content: '';
+      position: absolute;
+      background: var(--ink2);
+      border-radius: 2px;
+      transition: all .3s var(--ease);
+    }
+
+    .faq-icon::before {
+      width: 10px;
+      height: 1.5px;
+    }
+
+    .faq-icon::after {
+      width: 1.5px;
+      height: 10px;
+    }
+
+    .faq-item.faq-open .faq-icon {
+      background: var(--red);
+      border-color: var(--red);
+      transform: rotate(45deg);
+    }
+
+    .faq-item.faq-open .faq-icon::before,
+    .faq-item.faq-open .faq-icon::after {
+      background: #fff;
+    }
+
+    /* Answer — animates open/closed */
+    .faq-a {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows .38s var(--ease);
+    }
+
+    .faq-item.faq-open .faq-a {
+      grid-template-rows: 1fr;
+    }
+
+    .faq-a-inner {
+      overflow: hidden;
+      font-size: .88rem;
+      color: var(--ink2);
+      line-height: 1.75;
+      padding: 0 1.6rem;
+      transition: padding .38s var(--ease);
+    }
+
+    .faq-item.faq-open .faq-a-inner {
+      padding: 0 1.6rem 1.35rem;
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="navbar" id="navbar"></nav>
+  <main>
+    <!-- ═══════════════════════════════════════════════
+     HERO — Sticky parallax with campus image
+     ═══════════════════════════════════════════════ -->
+    <div class="hero-sticky-wrapper" id="heroWrapper">
+      <div class="hero-sticky-inner" id="heroSticky">
+
+        <!-- Parallax campus background -->
+        <div class="hero-bg-img" id="heroBg">
+          <img src="/hero-campus.jpg" alt="NIT Kurukshetra Campus" id="heroBgImg">
+        </div>
+        <div class="hero-grain"></div>
+
+        <!-- Main content -->
+        <div class="hero-content" id="heroContent">
+          <div class="hero-eyebrow-pill">Built for NIT Kurukshetra Students</div>
+
+          <h1 class="hero-title-main">
+            <span class="word-reveal-line" id="hl1">
+              <span class="word">Navigate</span>
+            </span><br>
+            <span class="word-reveal-line" id="hl2">
+              <span class="word">Your</span>&nbsp;<span class="word line-gradient">Club</span>
+            </span><br>
+            <span class="word-reveal-line" id="hl3">
+              <span class="word line-gradient">Life</span>&nbsp;<span class="word">at&nbsp;NIT&nbsp;KKR</span>
+            </span>
+          </h1>
+
+          <p class="hero-sub-text">
+            Discover clubs and societies that match your interests.<br>
+            Get personalised recommendations and find your community.
+          </p>
+
+          <div class="hero-ctas">
+            <a href="/quiz.html" class="btn btn-primary btn-lg" style="box-shadow:0 6px 28px rgba(91,35,255,.5)">
+              Find Your Best Club
+            </a>
+            <a href="/clubs.html" class="btn btn-glass btn-lg">Explore All Clubs</a>
+            <a href="/login.html" class="btn btn-glass btn-lg">Login</a>
+          </div>
+        </div>
+
+
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+     MARQUEE STRIP 1 — domains ticker
+     ═══════════════════════════════════════════════ -->
+    <!-- MARQUEE REMOVED -->
+
+    <!-- ═══════════════════════════════════════════════
+     STATS ROW
+     ═══════════════════════════════════════════════ -->
+    <div class="home-section" style="padding-top:4rem;padding-bottom:0">
+      <div class="stats-row scroll-fade">
+        <div class="stat-cell">
+          <div class="stat-num" style="color:var(--red);font-style:italic" id="stat-clubs">15+</div>
+          <div class="stat-label-text">Active Clubs</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num" style="color:var(--success)">6</div>
+          <div class="stat-label-text">Domains</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num" style="color:var(--warning)">10</div>
+          <div class="stat-label-text">Quiz Questions</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num" style="color:var(--p-indigo)">∞</div>
+          <div class="stat-label-text">Connections</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+     BROWSE BY DOMAIN
+     ═══════════════════════════════════════════════ -->
+    <div class="home-section">
+      <div
+        style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:2.2rem;flex-wrap:wrap;gap:1rem">
+        <div>
+          <div class="section-tag scroll-fade">Domains</div>
+          <h2 class="section-big-title scroll-fade delay-1">Browse by<br><span
+              style="color:var(--red);font-style:italic">Domain</span></h2>
+        </div>
+        <a href="/clubs.html" class="btn btn-outline scroll-fade delay-2">View all clubs →</a>
+      </div>
+
+      <div id="domains-grid-skeleton" class="card-grid">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
+      <div class="card-grid" id="domains-grid" style="display:none"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+     MARQUEE STRIP 2 — reversed
+     ═══════════════════════════════════════════════ -->
+    <!-- MARQUEE REMOVED -->
+
+    <!-- ═══════════════════════════════════════════════
+     HOW IT WORKS — big numbered steps
+     ═══════════════════════════════════════════════ -->
+    <div class="home-section">
+      <div style="margin-bottom:2.2rem">
+        <div class="section-tag scroll-fade">Process</div>
+        <h2 class="section-big-title scroll-fade delay-1">How It<br><span style="color:var(--success)">Works</span></h2>
+      </div>
+
+      <div class="steps-grid">
+        <div class="step-cell scroll-left">
+          <span class="step-number">01</span>
+          <div class="step-title">Sign Up Free</div>
+          <div class="step-desc">Use your NIT KKR email address — verified instantly with a one-time OTP. Takes under a
+            minute.</div>
+        </div>
+        <div class="step-cell scroll-right delay-1">
+          <span class="step-number">02</span>
+          <div class="step-title">Take the Quiz</div>
+          <div class="step-desc">Answer 10 fun questions about your interests and personality. Our algorithm finds your
+            perfect club match.</div>
+        </div>
+        <div class="step-cell scroll-left delay-2">
+          <span class="step-number">03</span>
+          <div class="step-title">Read Real Reviews</div>
+          <div class="step-desc">See ratings and honest reviews from students who've actually joined clubs. No more
+            guessing.</div>
+        </div>
+        <div class="step-cell scroll-right delay-3">
+          <span class="step-number">04</span>
+          <div class="step-title">Connect & Join</div>
+          <div class="step-desc">Post anonymously, DM seniors, join the forum. Build your network from day one at NIT
+            KKR.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+     FEATURED CLUBS
+     ═══════════════════════════════════════════════ -->
+    <div class="home-section" style="padding-top:0">
+      <div
+        style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:2.2rem;flex-wrap:wrap;gap:1rem">
+        <div>
+          <div class="section-tag scroll-fade">Clubs</div>
+          <h2 class="section-big-title scroll-fade delay-1">Featured<br><span
+              style="color:var(--red);font-style:italic">Clubs</span></h2>
+        </div>
+        <a href="/clubs.html" class="btn btn-outline scroll-fade delay-2">See all clubs →</a>
+      </div>
+
+      <div id="featured-skeleton" class="card-grid">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
+      <div class="card-grid" id="featured-clubs" style="display:none"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+     QUICK LINKS — big bordered cells
+     ═══════════════════════════════════════════════ -->
+    <div class="home-section" style="padding-top:0;padding-bottom:6rem">
+      <div style="margin-bottom:2.2rem">
+        <div class="section-tag scroll-fade">Explore</div>
+        <h2 class="section-big-title scroll-fade delay-1">More to<br><span style="color:var(--success)">Explore</span>
+        </h2>
+      </div>
+      <div class="links-row">
+        <a href="/events.html" class="link-cell scroll-scale">
+          <div class="link-cell-title">Events Calendar</div>
+          <div class="link-cell-desc">Stay updated on upcoming events, fests, and workshops from every club on campus.
+          </div>
+          <div class="link-cell-arrow">Browse Events <span>→</span></div>
+        </a>
+        <a href="/forum.html" class="link-cell scroll-scale delay-1">
+          <div class="link-cell-title">Community Forum</div>
+          <div class="link-cell-desc">Ask seniors anything. Post anonymously. Get honest, real advice from the NIT KKR
+            community.</div>
+          <div class="link-cell-arrow">Join the Conversation <span>→</span></div>
+        </a>
+        <a href="/forum.html#polls" class="link-cell scroll-scale delay-2">
+          <div class="link-cell-title">Community Polls</div>
+          <div class="link-cell-desc">Vote on club-related questions. See what your batchmates think about joining
+            different domains.</div>
+          <div class="link-cell-arrow">View Polls <span>→</span></div>
+        </a>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+     FAQ SECTION
+     ═══════════════════════════════════════════════ -->
+    <div class="home-section" style="padding-top:0;padding-bottom:7rem">
+      <div style="max-width:780px;margin:0 auto">
+
+        <div style="margin-bottom:2.8rem">
+          <div class="section-tag scroll-fade">FAQ</div>
+          <h2 class="section-big-title scroll-fade delay-1">Frequently Asked<br><span
+              style="color:var(--red);font-style:italic">Questions</span></h2>
+          <p style="font-size:.93rem;color:var(--ink2);margin-top:.6rem" class="scroll-fade delay-2">Everything you need
+            to know about clubs at NIT Kurukshetra.</p>
+        </div>
+
+        <div class="faq-list scroll-fade delay-1">
+
+          <div class="faq-item">
+            <button class="faq-q">
+              <span>How many clubs should I join?</span>
+              <span class="faq-icon"></span>
+            </button>
+            <div class="faq-a">
+              <div class="faq-a-inner">Start with 1–2 clubs that genuinely excite you. Quality beats quantity — being an
+                active member of one club is far more rewarding (and looks better on your resume) than being a passive
+                member of five. You can always explore more in your second year once you've settled in.</div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q">
+              <span>Can I leave a club if I don't like it?</span>
+              <span class="faq-icon"></span>
+            </button>
+            <div class="faq-a">
+              <div class="faq-a-inner">Yes, absolutely. Most clubs at NIT KKR have no binding commitment. If a club
+                doesn't match your expectations, you're free to step back at any time. Use the Club Compass reviews and
+                forum to research before joining so you make the right choice from the start.</div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q">
+              <span>Are clubs compulsory at NIT Kurukshetra?</span>
+              <span class="faq-icon"></span>
+            </button>
+            <div class="faq-a">
+              <div class="faq-a-inner">No, clubs are entirely optional. However, they are one of the best ways to build
+                practical skills, make friends outside your branch, and strengthen your profile for placements and
+                higher studies. The college experience is significantly richer with club involvement.</div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q">
+              <span>How do I balance club activities with my studies?</span>
+              <span class="faq-icon"></span>
+            </button>
+            <div class="faq-a">
+              <div class="faq-a-inner">Time management is key. Most clubs hold meetings 1–2 times a week for 1–2 hours.
+                Avoid over-committing during exam season — good clubs will understand. Use the events calendar on Club
+                Compass to plan ahead and never be caught off guard by clashing deadlines.</div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q">
+              <span>When do clubs recruit new members?</span>
+              <span class="faq-icon"></span>
+            </button>
+            <div class="faq-a">
+              <div class="faq-a-inner">Most clubs recruit at the start of each semester — typically in July–August and
+                January–February. Some technical clubs hold open recruitment year-round. Check each club's profile on
+                Club Compass for their current recruitment status (Open / Closed / Coming Soon).</div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q">
+              <span>Do I need prior experience to join a technical club?</span>
+              <span class="faq-icon"></span>
+            </button>
+            <div class="faq-a">
+              <div class="faq-a-inner">Not necessarily! Many technical clubs like coding and robotics actively welcome
+                beginners and teach skills from scratch. What they look for is enthusiasm and willingness to learn. Read
+                the club reviews on Club Compass to understand what each club actually expects from freshers.</div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q">
+              <span>How does the Club Quiz work?</span>
+              <span class="faq-icon"></span>
+            </button>
+            <div class="faq-a">
+              <div class="faq-a-inner">The Club Compass quiz is a 10-question personality and interest assessment. Based
+                on your answers, our algorithm ranks clubs best suited to your profile and suggests a primary domain. It
+                takes under 2 minutes and you don't need to be logged in to take it — though logging in saves your
+                results.</div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q">
+              <span>Is Club Compass an official NIT KKR platform?</span>
+              <span class="faq-icon"></span>
+            </button>
+            <div class="faq-a">
+              <div class="faq-a-inner">Club Compass is a student-built platform made by NIT KKR students, for NIT KKR
+                students. It is not an official institute portal. All reviews and opinions are from real students and do
+                not represent the official views of NIT Kurukshetra or any of its clubs.</div>
+            </div>
+          </div>
+
+        </div><!-- end faq-list -->
+      </div>
+    </div>
+
+    <!-- intro.js removed -->
+  </main>
+  <footer id="footer"></footer>
+  <script src="/config.js?v=11"></script>
+  <script src="/js/api.js?v=11"></script>
+  <script src="/js/auth.js?v=11"></script>
+  <script src="/js/app.js?v=11"></script>
+  <script>
+    renderNavbar('home');
+    renderFooter();
+    initChatWidget();
+
+    /* ════════════════════════════════════════════
+       DOMAINS GRID
+       ════════════════════════════════════════════ */
+    const domains = [
+      { name: 'Technical', icon: '💻', desc: 'Coding · Robotics · Embedded' },
+      { name: 'Cultural', icon: '🎭', desc: 'Dance · Music · Photography' },
+      { name: 'Sports', icon: '⚽', desc: 'Cricket & All Sports' },
+      { name: 'Literary', icon: '📚', desc: 'Debate · Math · Writing' },
+      { name: 'Social', icon: '🌍', desc: 'NSS · Community Service' },
+      { name: 'Management', icon: '📈', desc: 'Startups · I-Cell · Events' },
+    ];
+    document.getElementById('domains-grid').innerHTML = domains.map(d => `
+  <a href="/clubs.html?domain=${d.name}" style="text-decoration:none">
+    <div class="club-card">
+      <div class="club-card-banner" style="background:linear-gradient(135deg,${domainColor(d.name)}18,${domainColor(d.name)}35)">
+        <span class="club-emoji">${d.icon}</span>
+      </div>
+      <div class="club-card-body">
+        <div class="club-card-name">${d.name}</div>
+        <div class="club-card-tagline">${d.desc}</div>
+      </div>
+    </div>
+  </a>`).join('');
+    document.getElementById('domains-grid-skeleton').style.display = 'none';
+    document.getElementById('domains-grid').style.display = '';
+
+    /* ════════════════════════════════════════════
+       FEATURED CLUBS — async
+       ════════════════════════════════════════════ */
+    (async () => {
+      try {
+        const clubs = await api.clubs();
+        document.getElementById('stat-clubs').textContent = clubs.length + '+';
+        document.getElementById('featured-clubs').innerHTML =
+          (clubs || []).slice(0, 6).map(c => clubCardHtml(c)).join('');
+        document.getElementById('featured-skeleton').style.display = 'none';
+        document.getElementById('featured-clubs').style.display = '';
+      } catch {
+        document.getElementById('featured-skeleton').innerHTML = '';
+      }
+    })();
+
+    /* ════════════════════════════════════════════
+       SCROLL ANIMATIONS ENGINE
+       ════════════════════════════════════════════ */
+    const scrollObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible', 'revealed');
+          scrollObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+    // Observe all scroll-animated elements
+    document.querySelectorAll(
+      '.scroll-fade, .scroll-left, .scroll-right, .scroll-scale'
+    ).forEach(el => scrollObserver.observe(el));
+
+    // Word-by-word line reveal with slight per-word stagger
+    const lineObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('revealed');
+          // Stagger each word inside
+          entry.target.querySelectorAll('.word').forEach((w, i) => {
+            w.style.transitionDelay = (i * 0.06) + 's';
+          });
+          lineObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.5 });
+
+    document.querySelectorAll('.word-reveal-line').forEach(el => {
+      lineObserver.observe(el);
+    });
+
+    /* ════════════════════════════════════════════
+       HERO PARALLAX — runs on scroll
+       ════════════════════════════════════════════ */
+    const heroWrapper = document.getElementById('heroWrapper');
+    const heroBgImg = document.getElementById('heroBgImg');
+    const heroContent = document.getElementById('heroContent');
+
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+      if (ticking) return;
+      requestAnimationFrame(() => {
+        const rect = heroWrapper.getBoundingClientRect();
+        const wh = window.innerHeight;
+        const progress = Math.max(0, Math.min(1, -rect.top / (rect.height - wh)));
+
+        // Move only the img for parallax (container stays put, no overflow)
+        const bgY = progress * 60;
+        heroBgImg.style.transform = `scale(1.12) translateY(${bgY}px)`;
+
+        // Content fades and lifts as you scroll past
+        const fadeStart = 0.35;
+        if (progress > fadeStart) {
+          const t = (progress - fadeStart) / (1 - fadeStart);
+          heroContent.style.opacity = Math.max(0, 1 - t * 1.4);
+          heroContent.style.transform = `translateY(${t * -40}px)`;
+        } else {
+          heroContent.style.opacity = '1';
+          heroContent.style.transform = 'none';
+        }
+        ticking = false;
+      });
+      ticking = true;
+    }, { passive: true });
+
+    /* trigger word lines immediately (they're above fold) */
+    setTimeout(() => {
+      ['hl1', 'hl2', 'hl3'].forEach((id, i) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        setTimeout(() => {
+          el.classList.add('revealed');
+          el.querySelectorAll('.word').forEach((w, wi) => {
+            w.style.transitionDelay = (wi * 0.07 + i * 0.18) + 's';
+          });
+        }, i * 180);
+      });
+    }, 300);
+
+    /* ── FAQ accordion ── */
+    document.querySelectorAll('.faq-item').forEach(item => {
+      item.querySelector('.faq-q').addEventListener('click', () => {
+        const isOpen = item.classList.contains('faq-open');
+        // close all
+        document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('faq-open'));
+        if (!isOpen) item.classList.add('faq-open');
+      });
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Events — NIT KKR Compass</title>
+  <link rel="stylesheet" href="/css/style.css?v=11">
+  
+<script src="/js/loader.js?v=11"></script>
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+<div class="page" style="max-width:900px">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1.4rem;flex-wrap:wrap">
+    <div>
+      <h1 class="font-serif" style="font-size:1.5rem;font-weight:800;letter-spacing:-.03em;margin-bottom:.18rem">Events Calendar</h1>
+      <p class="text-muted text-small">All upcoming events from NIT KKR clubs in one place</p>
+    </div>
+    <div id="admin-btn" style="display:none"><button class="btn btn-primary btn-sm" onclick="openCreate()">+ Add Event</button></div>
+  </div>
+  <div style="display:flex;gap:.38rem;flex-wrap:wrap;margin-bottom:1.15rem;align-items:center">
+    <div id="domain-filters" style="display:flex;flex-wrap:wrap;gap:.32rem">
+      <button class="ev-filter active" onclick="setDomain(this,'')">All</button>
+      <button class="ev-filter" onclick="setDomain(this,'Technical')">💻 Technical</button>
+      <button class="ev-filter" onclick="setDomain(this,'Cultural')">🎭 Cultural</button>
+      <button class="ev-filter" onclick="setDomain(this,'Sports')">⚽ Sports</button>
+      <button class="ev-filter" onclick="setDomain(this,'Literary')">📚 Literary</button>
+      <button class="ev-filter" onclick="setDomain(this,'Social')">🌍 Social</button>
+      <button class="ev-filter" onclick="setDomain(this,'Management')">📈 Management</button>
+    </div>
+    <span class="text-small text-muted" id="ev-count" style="margin-left:auto"></span>
+  </div>
+  <div id="events-list"><div class="loading-center"><span class="spinner"></span></div></div>
+</div>
+
+<div class="post-modal-overlay" id="create-overlay" style="display:none" onclick="if(event.target===this)closeCreate()">
+  <div class="post-modal" style="max-width:500px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <h2 class="font-serif" style="font-size:1rem;font-weight:800">Add Event</h2>
+      <button class="btn btn-ghost btn-sm" onclick="closeCreate()">✕</button>
+    </div>
+    <div class="form-group"><label class="form-label">Title *</label><input class="form-input" id="ev-title" placeholder="e.g. Hackshetra 2025"></div>
+    <div class="form-group"><label class="form-label">Club *</label><select class="form-select" id="ev-club"></select></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem">
+      <div class="form-group"><label class="form-label">Date *</label><input class="form-input" id="ev-date" type="date"></div>
+      <div class="form-group"><label class="form-label">Time</label><input class="form-input" id="ev-time" type="time"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Location</label><input class="form-input" id="ev-location" value="NIT Kurukshetra"></div>
+    <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="ev-desc" placeholder="Brief description…" style="min-height:62px"></textarea></div>
+    <div id="ev-err" class="alert alert-error" style="display:none"></div>
+    <div style="display:flex;gap:.55rem;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeCreate()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitEvent()">Create →</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.ev-filter{padding:.26rem .68rem;border-radius:6px;font-size:.76rem;font-weight:600;background:var(--paper3);border:1px solid var(--border);color:var(--ink2);cursor:pointer;transition:all .15s;white-space:nowrap}
+.ev-filter.active{background:var(--red);color:#fff;border-color:var(--red)}
+.ev-filter:hover:not(.active){border-color:var(--border2);color:var(--ink)}
+</style>
+<footer id="footer"></footer>
+<script src="/config.js?v=11"></script>
+<script src="/js/api.js?v=11"></script><script src="/js/auth.js?v=11"></script><script src="/js/app.js?v=11"></script>
+<script>
+renderNavbar('events');
+  renderFooter();
+  initChatWidget();
+let allEvents=[], currentDomain='';
+const user=Auth.getUser();
+if(user?.role==='club_admin'||user?.role==='owner'||user?.role==='faculty_incharge') document.getElementById('admin-btn').style.display='block';
+
+async function loadEvents(){
+  try{ allEvents=await api.events(); renderEvents(); }
+  catch(e){ document.getElementById('events-list').innerHTML=`<div class="alert alert-error">${e.message}</div>`; }
+}
+function setDomain(btn,domain){
+  currentDomain=domain;
+  document.querySelectorAll('.ev-filter').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); renderEvents();
+}
+function renderEvents(){
+  const f=currentDomain?allEvents.filter(e=>e.domain===currentDomain):allEvents;
+  const today=new Date().toISOString().slice(0,10);
+  const up=f.filter(e=>e.event_date>=today), past=f.filter(e=>e.event_date<today);
+  document.getElementById('ev-count').textContent=`${f.length} event${f.length!==1?'s':''}`;
+  if(!f.length){
+    document.getElementById('events-list').innerHTML='<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No events yet</div><div class="empty-sub">Club admins can add upcoming events here</div></div>';
+    return;
+  }
+  let html='';
+  if(up.length){ html+=`<div style="font-family:var(--font-serif);font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.58rem">Upcoming</div>`; html+=up.map(e=>evCard(e)).join(''); }
+  if(past.length){ html+=`<div style="font-family:var(--font-serif);font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin:1rem 0 .58rem">Past</div>`; html+=past.map(e=>evCard(e,true)).join(''); }
+  document.getElementById('events-list').innerHTML=html;
+}
+function evCard(e,past=false){
+  const d=new Date(e.event_date+'T00:00:00');
+  const day=d.toLocaleDateString('en-IN',{day:'2-digit'}), month=d.toLocaleDateString('en-IN',{month:'short'});
+  const col=domainColor(e.domain);
+  const canAdmin=user?.role==='club_admin'||user?.role==='owner'||user?.role==='faculty_incharge';
+  return `<div class="event-card" style="${past?'opacity:.55':''}">
+    <div class="event-date-box" style="border-color:${col}22"><div class="event-day" style="color:${col}">${day}</div><div class="event-month">${month}</div></div>
+    <div class="event-body">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.45rem">
+        <div style="flex:1">
+          <div class="event-title">${escHtml(e.title)}</div>
+          <div class="event-sub">${e.club_icon||'🎯'} ${escHtml(e.club_name)}${e.event_time?' · '+e.event_time:''} · 📍 ${escHtml(e.location||'NIT Kurukshetra')}</div>
+          ${e.description?`<div style="font-size:.73rem;color:var(--ink2);margin-top:.26rem;line-height:1.5">${escHtml(e.description)}</div>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:.38rem;flex-shrink:0">
+          <span class="domain-badge" style="background:${col}12;color:${col};border:1px solid ${col}20">${e.domain}</span>
+          ${canAdmin?`<button class="btn btn-ghost btn-sm" style="color:var(--danger);padding:.15rem .35rem" onclick="delEv('${e.id}')">🗑</button>`:''}
+        </div>
+      </div>
+      ${!past?`<button class="interested-btn ${e.is_interested?'active':''}" id="int-${e.id}" onclick="toggleInt('${e.id}',this)">
+        ${e.is_interested?'✓ Interested':'+ Interested'} <span style="color:var(--ink3);font-size:.64rem;margin-left:.15rem">${e.interested_count}</span>
+      </button>`:''}
+    </div>
+  </div>`;
+}
+async function toggleInt(id,btn){
+  if(!Auth.isLoggedIn()){window.location.href='/login.html';return;}
+  try{
+    const r=await api.toggleInterested(id);
+    const ev=allEvents.find(e=>e.id===id);
+    if(ev){ev.is_interested=r.is_interested;ev.interested_count+=r.is_interested?1:-1;}
+    btn.classList.toggle('active',r.is_interested);
+    btn.innerHTML=`${r.is_interested?'✓ Interested':'+ Interested'} <span style="color:var(--ink3);font-size:.64rem;margin-left:.15rem">${ev?.interested_count||0}</span>`;
+  }catch(e){toast(e.message,'error');}
+}
+async function delEv(id){
+  if(!confirm('Delete this event?'))return;
+  try{await api.deleteEvent(id);allEvents=allEvents.filter(e=>e.id!==id);renderEvents();toast('Deleted');}
+  catch(e){toast(e.message,'error');}
+}
+async function openCreate(){
+  document.getElementById('create-overlay').style.display='flex';
+  try{const clubs=await api.clubs();document.getElementById('ev-club').innerHTML=(clubs||[]).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');}catch{}
+}
+function closeCreate(){document.getElementById('create-overlay').style.display='none';}
+async function submitEvent(){
+  const err=document.getElementById('ev-err');err.style.display='none';
+  const title=document.getElementById('ev-title').value.trim();
+  const club_id=document.getElementById('ev-club').value;
+  const date=document.getElementById('ev-date').value;
+  const time=document.getElementById('ev-time').value;
+  const location=document.getElementById('ev-location').value.trim();
+  const description=document.getElementById('ev-desc').value.trim();
+  if(!title||!date){err.textContent='Title and date required';err.style.display='block';return;}
+  try{
+    await api.createEvent({title,club_id,event_date:date,event_time:time,location,description});
+    closeCreate();toast('Event created!');allEvents=await api.events();renderEvents();
+  }catch(e){err.textContent=e.message;err.style.display='block';}
+}
+loadEvents();
+</script>
+</body>
+</html>

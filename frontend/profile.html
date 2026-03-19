@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile — NIT KKR Compass</title>
+  <link rel="stylesheet" href="/css/style.css?v=11">
+  
+<script src="/js/loader.js?v=11"></script>
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+
+<div class="page" style="max-width:800px">
+  <a href="javascript:history.back()" class="btn btn-ghost btn-sm" style="margin-bottom:1.1rem;display:inline-flex">← Back</a>
+  <div id="profile-content">
+    <div class="loading-center" style="padding:4rem"><span class="spinner"></span></div>
+  </div>
+</div>
+
+<footer id="footer"></footer>
+<script src="/config.js?v=11"></script>
+<script src="/js/api.js?v=11"></script>
+<script src="/js/auth.js?v=11"></script>
+<script src="/js/app.js?v=11"></script>
+<script>
+  renderNavbar('');
+  renderFooter();
+  initChatWidget();
+  const uid = new URLSearchParams(location.search).get('id');
+  const me  = Auth.getUser();
+  if (!uid) window.location.href = '/';
+
+  async function load() {
+    try {
+      const data = await api.profile(uid);
+      const u = data.user;
+      document.title = `${u.name} — NIT KKR Compass`;
+      const col = avatarColor(u.name);
+      const isMe = data.is_me;
+
+      document.getElementById('profile-content').innerHTML = `
+        <!-- Profile header -->
+        <div class="profile-header" style="margin-bottom:1.15rem">
+          <div class="profile-avatar" style="background:${col};color:#fff">${initials(u.name)}</div>
+          <div style="flex:1">
+            <div class="profile-name">${escHtml(u.name)}</div>
+            <div style="display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;margin-bottom:.5rem">
+              ${roleBadge(u.role)}
+              ${u.role==='student'?yearBadge(u.year):''}
+              ${u.branch?`<span class="badge badge-student">📐 ${u.branch}</span>`:''}
+              ${u.roll_number?`<span class="text-small text-muted">${u.roll_number}</span>`:''}
+            </div>
+            ${data.bio?`<p style="font-size:.85rem;color:var(--ink2);line-height:1.6;max-width:480px">${escHtml(data.bio)}</p>`:''}
+            <div style="display:flex;gap:.55rem;margin-top:.75rem;flex-wrap:wrap">
+              ${!isMe && me ? `<button class="btn btn-primary btn-sm" onclick="msgUser('${u.id}')">💬 Message</button>` : ''}
+              ${isMe ? `<a href="/dashboard.html" class="btn btn-secondary btn-sm">⚙️ My Dashboard</a>` : ''}
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-family:var(--font-serif);font-size:1.65rem;font-weight:800;line-height:1">${data.post_count}</div>
+            <div style="font-size:.72rem;color:var(--ink3)">Posts</div>
+          </div>
+        </div>
+
+        <!-- Recent posts -->
+        ${data.recent_posts.length ? `
+        <div class="card">
+          <div class="section-header" style="margin-bottom:.9rem">
+            <span class="section-title" style="font-size:1rem">Recent Forum Posts</span>
+            <a href="/forum.html" class="section-link">View Forum →</a>
+          </div>
+          <div>
+            ${(data.recent_posts||[]).map(p=>`
+              <div style="padding:.65rem 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:.8rem;cursor:pointer" onclick="openForumPost('${p.id}')">
+                <div style="font-size:.85rem;font-weight:500;flex:1">${escHtml(p.title)}</div>
+                <span class="text-small text-muted" style="white-space:nowrap">${timeAgo(p.created_at)}</span>
+              </div>`).join('')}
+          </div>
+        </div>` : `
+        <div class="empty-state" style="padding:2rem">
+          <div class="empty-icon">💬</div>
+          <div class="empty-title">No public posts yet</div>
+          <div class="empty-sub">Anonymous posts are not shown on profiles</div>
+        </div>`}`;
+    } catch(e) {
+      document.getElementById('profile-content').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">😕</div>
+          <div class="empty-title">User not found</div>
+          <div class="empty-sub">${e.message}</div>
+        </div>`;
+    }
+  }
+
+  function msgUser(userId) {
+    window.location.href = `/messages.html?user=${userId}`;
+  }
+  function openForumPost(postId) {
+    window.location.href = `/forum.html#post=${postId}`;
+  }
+
+  load();
+</script>
+</body>
+</html>

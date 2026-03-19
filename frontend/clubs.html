@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clubs — NIT KKR Compass</title>
+  <link rel="stylesheet" href="/css/style.css?v=11">
+  
+<script src="/js/loader.js?v=11"></script>
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+
+<div class="page">
+  <div style="margin-bottom:1.75rem">
+    <h1 style="font-family:var(--font-serif);font-size:1.75rem;font-weight:800;letter-spacing:-.04em;margin-bottom:.3rem">
+      All Clubs
+    </h1>
+    <p class="text-muted text-small">15+ clubs across 6 domains at NIT Kurukshetra</p>
+  </div>
+
+  <!-- Filters -->
+  <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin-bottom:1.5rem">
+    <input class="form-input" id="search" placeholder="Search clubs…"
+      style="width:220px;font-size:.85rem;padding:.45rem .85rem"
+      oninput="filterClubs()">
+    <div style="display:flex;flex-wrap:wrap;gap:.4rem" id="domain-filters">
+      <button class="domain-filter-btn active" data-domain="" onclick="setDomain(this,'')">All</button>
+      <button class="domain-filter-btn" data-domain="Technical"  onclick="setDomain(this,'Technical')">💻 Technical</button>
+      <button class="domain-filter-btn" data-domain="Cultural"   onclick="setDomain(this,'Cultural')">🎭 Cultural</button>
+      <button class="domain-filter-btn" data-domain="Sports"     onclick="setDomain(this,'Sports')">⚽ Sports</button>
+      <button class="domain-filter-btn" data-domain="Literary"   onclick="setDomain(this,'Literary')">📚 Literary</button>
+      <button class="domain-filter-btn" data-domain="Social"     onclick="setDomain(this,'Social')">🌍 Social</button>
+      <button class="domain-filter-btn" data-domain="Management" onclick="setDomain(this,'Management')">📈 Management</button>
+    </div>
+    <div style="margin-left:auto;font-size:.82rem;color:var(--ink3)" id="count-label"></div>
+  </div>
+
+  <div class="card-grid" id="clubs-grid">
+    <div class="skeleton-card" style="grid-column:1/-1;display:none"></div><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>
+  </div>
+</div>
+
+<style>
+.domain-filter-btn {
+  padding:.35rem .85rem;border-radius:8px;font-size:.8rem;font-weight:600;
+  background:var(--paper3);border:1px solid var(--border);color:var(--ink2);
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.domain-filter-btn.active {
+  background:var(--red);color:#fff;border-color:var(--red);
+}
+.domain-filter-btn:hover:not(.active) { border-color:var(--border2); color:var(--ink); }
+</style>
+
+<footer id="footer"></footer>
+<script src="/config.js?v=11"></script>
+<script src="/js/api.js?v=11"></script>
+<script src="/js/auth.js?v=11"></script>
+<script src="/js/app.js?v=11"></script>
+<script>
+  renderNavbar('clubs');
+  renderFooter();
+  initChatWidget();
+  initCompareBar();
+
+  let allClubs = [];
+  let currentDomain = '';
+
+  // Pre-select domain from URL
+  const urlDomain = new URLSearchParams(location.search).get('domain') || '';
+  if (urlDomain) {
+    currentDomain = urlDomain;
+    document.querySelectorAll('.domain-filter-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.domain === urlDomain);
+    });
+  }
+
+  async function loadClubs() {
+    try {
+      allClubs = await api.clubs();
+      filterClubs();
+    } catch(e) {
+      document.getElementById('clubs-grid').innerHTML = `<div class="alert alert-error" style="grid-column:1/-1">${e.message}</div>`;
+    }
+  }
+
+  function setDomain(btn, domain) {
+    currentDomain = domain;
+    document.querySelectorAll('.domain-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filterClubs();
+  }
+
+  function filterClubs() {
+    const q = document.getElementById('search').value.toLowerCase();
+    const filtered = allClubs.filter(c => {
+      const matchDomain = !currentDomain || c.domain === currentDomain;
+      const matchSearch = !q || c.name.toLowerCase().includes(q) || c.tagline?.toLowerCase().includes(q) || c.tags?.some(t=>t.includes(q));
+      return matchDomain && matchSearch;
+    });
+    document.getElementById('count-label').textContent = `${filtered.length} club${filtered.length!==1?'s':''}`;
+    document.getElementById('clubs-grid').innerHTML = filtered.length
+      ? filtered.map(c => clubCardHtml(c, true)).join('')
+      : `<div class="empty-state" style="grid-column:1/-1">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-title">No clubs found</div>
+          <div class="empty-sub">Try a different search or filter</div>
+        </div>`;
+  }
+
+  loadClubs();
+</script>
+</body>
+</html>

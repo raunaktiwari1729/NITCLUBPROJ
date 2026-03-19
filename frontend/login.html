@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — NIT KKR Compass</title>
+  <link rel="stylesheet" href="/css/style.css?v=11">
+  <script src="/js/loader.js?v=11"></script>
+  <style>
+    .login-step.hidden{display:none}
+    .forgot-password-link{color:var(--ink3);font-size:.78rem;font-weight:600;margin-top:.3rem;display:inline-block;text-decoration:none;transition:color .2s}
+    .forgot-password-link:hover{color:var(--red)}
+    .input-wrap{position:relative}
+    .input-icon{position:absolute;left:.86rem;top:50%;transform:translateY(-50%);font-size:.88rem;pointer-events:none;z-index:1}
+    .input-icon~.form-input{padding-left:2.5rem}
+    .pwd-eye{position:absolute;right:.78rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--ink3);cursor:pointer;font-size:.9rem;padding:.18rem;border-radius:4px;transition:color .2s var(--ease)}
+    .pwd-eye:hover{color:var(--red)}
+    .or-divider{display:flex;align-items:center;gap:.8rem;margin:1.2rem 0;color:var(--ink3);font-size:.75rem}
+    .or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+    .otp-digits{display:flex;gap:.6rem;justify-content:center;margin:1.4rem 0}
+    .otp-digit{width:48px;height:56px;border:2px solid var(--border);border-radius:12px;background:var(--paper2);color:var(--ink);font-size:1.5rem;font-weight:800;font-family:var(--font-serif);text-align:center;transition:border-color .25s var(--ease),box-shadow .25s var(--ease);outline:none}
+    .otp-digit:focus{border-color:var(--red);box-shadow:0 0 0 3px var(--red-bg)}
+    .otp-digit.filled{border-color:var(--red);background:var(--red-bg)}
+    .otp-email-badge{display:inline-flex;align-items:center;gap:.4rem;background:var(--red-bg);border:1px solid var(--red-border);border-radius:20px;padding:.28rem .9rem;font-size:.82rem;font-weight:600;color:var(--red);margin:.6rem auto .2rem}
+    .otp-resend{text-align:center;font-size:.8rem;color:var(--ink3);margin-top:.8rem}
+    .otp-resend button{background:none;border:none;color:var(--red);font-weight:700;cursor:pointer;font-size:.8rem;padding:0}
+    .otp-resend button:disabled{opacity:.4;cursor:not-allowed}
+    .step-indicator{display:flex;align-items:center;justify-content:center;gap:.4rem;margin-bottom:1.6rem}
+    .step-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .3s var(--ease)}
+    .step-dot.active{width:24px;border-radius:4px;background:var(--red)}
+    .step-dot.done{background:#4ade80}
+  </style>
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+
+<div class="auth-page">
+  <div class="auth-card">
+
+    <div style="text-align:center;margin-bottom:1.4rem">
+      <div style="display:inline-flex;width:56px;height:56px;border-radius:16px;background:var(--red);align-items:center;justify-content:center;font-size:1.6rem;margin-bottom:.8rem;box-shadow:var(--shadow-red)">🧭</div>
+      <div class="auth-title">Welcome Back</div>
+      <div class="auth-sub">Log in to NIT KKR Club Compass</div>
+    </div>
+
+    <div class="step-indicator">
+      <div class="step-dot active" id="sdot-1"></div>
+      <div class="step-dot" id="sdot-2"></div>
+    </div>
+
+    <!-- STEP 1: Email + Password -->
+    <div id="step-form" class="login-step">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <div class="input-wrap">
+          <span class="input-icon">✉️</span>
+          <input class="form-input" id="email" type="email" placeholder="123456789@nitkkr.ac.in" autocomplete="email">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="input-wrap" style="position:relative">
+          <span class="input-icon">🔒</span>
+          <input class="form-input" id="password" type="password" placeholder="Your password" autocomplete="current-password" style="padding-left:2.5rem;padding-right:2.8rem">
+          <button type="button" class="pwd-eye" onclick="togglePwd('password')">👁</button>
+        </div>
+        <div style="text-align:right">
+          <a href="#" class="forgot-password-link" onclick="showStep(3); return false;">Forgot password?</a>
+        </div>
+      </div>
+      <div id="login-err" class="alert alert-error" style="display:none"></div>
+      <button class="btn btn-primary" style="width:100%;padding:.68rem;font-size:.95rem" id="login-btn" onclick="doLogin()">
+        Send OTP →
+      </button>
+      <div class="or-divider">or</div>
+      <div style="text-align:center;font-size:.84rem;color:var(--ink2)">
+        Don't have an account? <a href="/signup.html" style="color:var(--red);font-weight:700">Sign up free</a>
+      </div>
+      <div style="text-align:center;margin-top:.5rem;font-size:.78rem;color:var(--ink3)">
+        Faculty / Club Admin? <a href="/admin-login.html" style="color:var(--red)">Staff Login →</a>
+      </div>
+    </div>
+
+    <!-- STEP 2: OTP -->
+    <div id="step-otp" class="login-step hidden">
+      <div style="text-align:center">
+        <div style="font-size:2rem;margin-bottom:.5rem">📧</div>
+        <div style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:.3rem">Check your inbox</div>
+        <div style="font-size:.83rem;color:var(--ink2)">We sent a 6-digit OTP to</div>
+        <div class="otp-email-badge" id="otp-email-display">—</div>
+        <div style="font-size:.76rem;color:var(--ink3);margin-top:.4rem">Also check your spam folder</div>
+      </div>
+      <div class="otp-digits">
+        <input class="otp-digit" id="d0" type="text" inputmode="numeric" maxlength="1" oninput="otpInput(this,0)" onkeydown="otpKey(event,0)">
+        <input class="otp-digit" id="d1" type="text" inputmode="numeric" maxlength="1" oninput="otpInput(this,1)" onkeydown="otpKey(event,1)">
+        <input class="otp-digit" id="d2" type="text" inputmode="numeric" maxlength="1" oninput="otpInput(this,2)" onkeydown="otpKey(event,2)">
+        <input class="otp-digit" id="d3" type="text" inputmode="numeric" maxlength="1" oninput="otpInput(this,3)" onkeydown="otpKey(event,3)">
+        <input class="otp-digit" id="d4" type="text" inputmode="numeric" maxlength="1" oninput="otpInput(this,4)" onkeydown="otpKey(event,4)">
+        <input class="otp-digit" id="d5" type="text" inputmode="numeric" maxlength="1" oninput="otpInput(this,5)" onkeydown="otpKey(event,5)">
+      </div>
+      <div id="otp-err" class="alert alert-error" style="display:none;margin-bottom:.8rem"></div>
+      <button class="btn btn-primary" style="width:100%;padding:.68rem;font-size:.95rem" id="verify-btn" onclick="verifyAndLogin()">
+        Verify &amp; Log In →
+      </button>
+      <div class="otp-resend">
+        <span id="otp-timer-wrap">Resend OTP in <strong id="otp-timer">60</strong>s</span>
+        <span id="otp-resend-wrap" style="display:none">
+          Didn't receive it? <button id="resend-btn" onclick="resendOtp()">Resend OTP</button>
+        </span>
+      </div>
+      <button onclick="goBack()" style="width:100%;margin-top:.8rem;background:none;border:1px solid var(--border);border-radius:var(--radius);padding:.5rem;color:var(--ink2);cursor:pointer;font-size:.82rem;transition:all .25s var(--ease)"
+        onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'"
+        onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--ink2)'">
+        ← Back
+      </button>
+    </div>
+
+    <!-- STEP 3: Forgot Password Request -->
+    <div id="step-forgot" class="login-step hidden">
+      <div style="text-align:center;margin-bottom:1.4rem">
+        <div style="font-size:2rem;margin-bottom:.5rem">🔑</div>
+        <div style="font-size:1.1rem;font-weight:700;color:var(--ink)">Reset Password</div>
+        <div style="font-size:.83rem;color:var(--ink2);margin-top:.4rem">Enter your email and we'll send a 6-digit OTP to reset your password.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <div class="input-wrap">
+          <span class="input-icon">✉️</span>
+          <input class="form-input" id="forgot-email" type="email" placeholder="123456789@nitkkr.ac.in">
+        </div>
+      </div>
+      <div id="forgot-err" class="alert alert-error" style="display:none"></div>
+      <button class="btn btn-primary" style="width:100%;padding:.68rem;font-size:.95rem" id="forgot-btn" onclick="requestPasswordReset()">
+        Send Reset OTP →
+      </button>
+      <button onclick="showStep(1)" style="width:100%;margin-top:.8rem;background:none;border:1px solid var(--border);border-radius:var(--radius);padding:.5rem;color:var(--ink2);cursor:pointer;font-size:.82rem;transition:all .25s var(--ease)">
+        ← Back to Login
+      </button>
+    </div>
+
+    <!-- STEP 4: Reset Password Confirm -->
+    <div id="step-reset-confirm" class="login-step hidden">
+      <div style="text-align:center;margin-bottom:1.4rem">
+        <div style="font-size:2rem;margin-bottom:.5rem">🔒</div>
+        <div style="font-size:1.1rem;font-weight:700;color:var(--ink)">Create New Password</div>
+        <div style="font-size:.83rem;color:var(--ink2);margin-top:.4rem">Enter the OTP sent to your email and your new password.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">OTP Code</label>
+        <input class="form-input" id="reset-otp" type="text" placeholder="123456" maxlength="6" style="letter-spacing:.2em; font-family:var(--font-serif); font-weight:700; text-align:center">
+      </div>
+      <div class="form-group">
+        <label class="form-label">New Password</label>
+        <div class="input-wrap" style="position:relative">
+          <span class="input-icon">🔒</span>
+          <input class="form-input" id="reset-new-password" type="password" placeholder="At least 6 characters" style="padding-left:2.5rem;padding-right:2.8rem">
+          <button type="button" class="pwd-eye" onclick="togglePwd('reset-new-password')">👁</button>
+        </div>
+      </div>
+      <div id="reset-confirm-err" class="alert alert-error" style="display:none"></div>
+      <button class="btn btn-primary" style="width:100%;padding:.68rem;font-size:.95rem" id="reset-confirm-btn" onclick="confirmPasswordReset()">
+        Reset Password
+      </button>
+      <button onclick="showStep(3)" style="width:100%;margin-top:.8rem;background:none;border:1px solid var(--border);border-radius:var(--radius);padding:.5rem;color:var(--ink2);cursor:pointer;font-size:.82rem;transition:all .25s var(--ease)">
+        ← Back
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<footer id="footer"></footer>
+<script src="/config.js?v=11"></script>
+<script src="/js/api.js?v=11"></script>
+<script src="/js/auth.js?v=11"></script>
+<script src="/js/app.js?v=11"></script>
+<script>
+  const EJ_SERVICE  = 'service_mtt7ftv';
+  const EJ_TEMPLATE = 'template_egz767e';
+  const EJ_PUBLIC_KEY = 'SIzhwclV2X69cJ4R_';
+
+  let generatedOtp = '', otpExpiry = 0, timerInterval = null;
+
+  Auth.redirectIfLoggedIn();
+  renderNavbar();
+  renderFooter();
+
+  function togglePwd(id) { const f = document.getElementById(id); f.type = f.type === 'password' ? 'text' : 'password'; }
+  function generateOtp() { return String(Math.floor(100000 + Math.random() * 900000)); }
+
+  function startTimer(s = 60) {
+    clearInterval(timerInterval);
+    document.getElementById('otp-timer-wrap').style.display = '';
+    document.getElementById('otp-resend-wrap').style.display = 'none';
+    let r = s; document.getElementById('otp-timer').textContent = r;
+    timerInterval = setInterval(() => {
+      r--; document.getElementById('otp-timer').textContent = r;
+      if (r <= 0) { clearInterval(timerInterval); document.getElementById('otp-timer-wrap').style.display = 'none'; document.getElementById('otp-resend-wrap').style.display = ''; }
+    }, 1000);
+  }
+
+  function showStep(step) {
+    document.getElementById('step-form').classList.toggle('hidden', step !== 1);
+    document.getElementById('step-otp').classList.toggle('hidden', step !== 2);
+    document.getElementById('step-forgot').classList.toggle('hidden', step !== 3);
+    document.getElementById('step-reset-confirm').classList.toggle('hidden', step !== 4);
+    
+    // Manage step dots visibility based on flow
+    if (step === 1 || step === 2) {
+      document.getElementById('sdot-1').className = 'step-dot ' + (step === 1 ? 'active' : 'done');
+      document.getElementById('sdot-2').className = 'step-dot ' + (step === 2 ? 'active' : '');
+      document.querySelector('.step-indicator').style.display = 'flex';
+    } else {
+      document.querySelector('.step-indicator').style.display = 'none';
+    }
+  }
+
+  function goBack() {
+    clearInterval(timerInterval); showStep(1);
+    for (let i = 0; i < 6; i++) { const d = document.getElementById('d' + i); d.value = ''; d.classList.remove('filled'); }
+    document.getElementById('otp-err').style.display = 'none';
+  }
+
+  function otpInput(el, idx) {
+    el.value = el.value.replace(/\D/g, '').slice(-1);
+    el.classList.toggle('filled', el.value !== '');
+    if (el.value && idx < 5) document.getElementById('d' + (idx + 1)).focus();
+    const code = Array.from({length: 6}, (_, i) => document.getElementById('d' + i).value).join('');
+    if (code.length === 6) verifyAndLogin();
+  }
+
+  function otpKey(e, idx) {
+    if (e.key === 'Backspace' && !e.target.value && idx > 0) document.getElementById('d' + (idx - 1)).focus();
+  }
+
+  document.addEventListener('paste', function(e) {
+    const active = document.activeElement;
+    if (!active || !active.classList.contains('otp-digit')) return;
+    const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasted.length >= 1) {
+      e.preventDefault();
+      for (let i = 0; i < 6; i++) { const d = document.getElementById('d' + i); d.value = pasted[i] || ''; d.classList.toggle('filled', !!pasted[i]); }
+      document.getElementById('d' + Math.min(pasted.length, 5)).focus();
+      if (pasted.length === 6) verifyAndLogin();
+    }
+  });
+
+  async function sendOtpEmail(toName, toEmail, otp) {
+    const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        service_id: EJ_SERVICE, template_id: EJ_TEMPLATE, user_id: EJ_PUBLIC_KEY,
+        template_params: { to_name: toName, to_email: toEmail, otp: otp }
+      })
+    });
+    if (!res.ok) { const txt = await res.text(); throw new Error('EmailJS ' + res.status + ': ' + txt); }
+  }
+
+  async function doLogin() {
+    const err = document.getElementById('login-err'); err.style.display = 'none';
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    const pass  = document.getElementById('password').value;
+    if (!email) { err.textContent = 'Enter your email'; err.style.display = 'block'; return; }
+    if (!pass)  { err.textContent = 'Enter your password'; err.style.display = 'block'; return; }
+
+    const btn = document.getElementById('login-btn');
+    btn.classList.add('loading'); btn.disabled = true; btn.textContent = 'Verifying…';
+
+    try {
+      const r = await api.login({email, password: pass});
+      window._pendingLogin = r;
+      
+      // Bypass OTP for Owner completely to resolve login issue
+      if (email === 'raunaktiwari1729@gmail.com') {
+        Auth.save(r.token, r.user);
+        toast('Welcome back, Admin! 👋');
+        const next = new URLSearchParams(location.search).get('next') || '/dashboard.html';
+        setTimeout(() => window.location.href = next, 500);
+        return;
+      }
+      
+      generatedOtp = generateOtp(); otpExpiry = Date.now() + 5 * 60 * 1000;
+      await sendOtpEmail(r.user.name.split(' ')[0], email, generatedOtp);
+      document.getElementById('otp-email-display').textContent = email;
+      showStep(2); startTimer(60);
+      document.getElementById('d0').focus();
+    } catch (e) {
+      const msg = e.message || '';
+      if (msg.toLowerCase().includes('wrong') || msg.includes('401') || msg.toLowerCase().includes('invalid')) {
+        err.textContent = '❌ Wrong email or password. Try again.';
+        document.getElementById('password').value = '';
+        document.getElementById('password').focus();
+      } else if (msg.toLowerCase().includes('emailjs') || msg.toLowerCase().includes('send')) {
+        err.textContent = 'Credentials verified but OTP failed to send. Check your internet.';
+      } else {
+        err.innerHTML = msg || 'Something went wrong. Is the backend running?';
+      }
+      err.style.display = 'block';
+    } finally {
+      btn.classList.remove('loading'); btn.disabled = false; btn.textContent = 'Send OTP →';
+    }
+  }
+
+  async function resendOtp() {
+    const btn = document.getElementById('resend-btn'); btn.disabled = true; btn.textContent = 'Sending…';
+    const email = document.getElementById('email').value.trim().toLowerCase();
+    const name  = window._pendingLogin?.user?.name || 'User';
+    generatedOtp = generateOtp(); otpExpiry = Date.now() + 5 * 60 * 1000;
+    for (let i = 0; i < 6; i++) { const d = document.getElementById('d' + i); d.value = ''; d.classList.remove('filled'); }
+    document.getElementById('otp-err').style.display = 'none';
+    try { await sendOtpEmail(name.split(' ')[0], email, generatedOtp); toast('New OTP sent! ✉️'); startTimer(60); }
+    catch (e) { toast('Failed to resend. Try again.'); }
+    finally { btn.disabled = false; btn.textContent = 'Resend OTP'; }
+  }
+
+  function verifyAndLogin() {
+    const err = document.getElementById('otp-err'); err.style.display = 'none';
+    const entered = Array.from({length: 6}, (_, i) => document.getElementById('d' + i).value).join('');
+    if (entered.length < 6) { err.textContent = 'Enter all 6 digits'; err.style.display = 'block'; return; }
+    if (Date.now() > otpExpiry) { err.textContent = 'OTP has expired. Please go back and try again.'; err.style.display = 'block'; return; }
+    if (entered !== generatedOtp) {
+      err.textContent = '❌ Incorrect OTP. Please try again.'; err.style.display = 'block';
+      for (let i = 0; i < 6; i++) { const d = document.getElementById('d' + i); d.style.borderColor = 'var(--danger)'; setTimeout(() => d.style.borderColor = '', 1200); }
+      return;
+    }
+    const r = window._pendingLogin;
+    clearInterval(timerInterval);
+    Auth.save(r.token, r.user);
+    toast('Welcome back, ' + r.user.name.split(' ')[0] + '! 👋');
+    const next = new URLSearchParams(location.search).get('next') || '/dashboard.html';
+    setTimeout(() => window.location.href = next, 500);
+  }
+
+  // --- Password Reset Logic ---
+  let resetRequestEmail = '';
+  
+  async function requestPasswordReset() {
+    const err = document.getElementById('forgot-err'); err.style.display = 'none';
+    const email = document.getElementById('forgot-email').value.trim().toLowerCase();
+    
+    if (!email) { err.textContent = 'Enter your email'; err.style.display = 'block'; return; }
+    
+    const btn = document.getElementById('forgot-btn');
+    btn.classList.add('loading'); btn.disabled = true; btn.textContent = 'Sending…';
+    
+    try {
+      const res = await api.post('/api/auth/reset-password-request', { email }, false);
+      resetRequestEmail = email;
+      
+      // Generate OTP client-side and send via EmailJS
+      const resetOtp = generateOtp();
+      await sendOtpEmail(res.user_first_name || 'User', email, resetOtp);
+      // Store OTP client-side for verification
+      window._resetOtp = resetOtp;
+      window._resetOtpExpiry = Date.now() + 15 * 60 * 1000;
+      
+      toast('OTP sent to ' + email);
+      showStep(4);
+    } catch (e) {
+      err.textContent = e.message || 'Failed to send OTP. User might not exist.';
+      err.style.display = 'block';
+    } finally {
+      btn.classList.remove('loading'); btn.disabled = false; btn.textContent = 'Send Reset OTP →';
+    }
+  }
+
+  async function confirmPasswordReset() {
+    const err = document.getElementById('reset-confirm-err'); err.style.display = 'none';
+    const otp = document.getElementById('reset-otp').value.trim();
+    const new_password = document.getElementById('reset-new-password').value;
+    
+    if (!otp) { err.textContent = 'Enter the OTP code'; err.style.display = 'block'; return; }
+    if (!new_password || new_password.length < 8) { err.textContent = 'Password must be at least 8 characters'; err.style.display = 'block'; return; }
+    
+    // Verify OTP client-side first
+    if (!window._resetOtp || !window._resetOtpExpiry) { err.textContent = 'Session expired. Request a new OTP.'; err.style.display = 'block'; return; }
+    if (Date.now() > window._resetOtpExpiry) { err.textContent = 'OTP expired. Request a new one.'; err.style.display = 'block'; return; }
+    if (otp !== window._resetOtp) { err.textContent = 'Incorrect OTP. Check your email.'; err.style.display = 'block'; return; }
+    
+    const btn = document.getElementById('reset-confirm-btn');
+    btn.classList.add('loading'); btn.disabled = true; btn.textContent = 'Resetting…';
+    
+    try {
+      await api.post('/api/auth/reset-password-confirm', {
+        email: resetRequestEmail,
+        otp: otp,
+        new_password: new_password
+      }, false);
+      // Clear OTP from memory
+      window._resetOtp = null;
+      window._resetOtpExpiry = null;
+      toast('Password reset successfully! ✨');
+      document.getElementById('email').value = resetRequestEmail;
+      document.getElementById('password').value = '';
+      showStep(1);
+    } catch (e) {
+      err.textContent = e.message || 'Failed to reset password. OTP may be invalid or expired.';
+      err.style.display = 'block';
+    } finally {
+      btn.classList.remove('loading'); btn.disabled = false; btn.textContent = 'Reset Password';
+    }
+  }
+</script>
+</body>
+</html>

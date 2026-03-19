@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — NIT KKR Compass</title>
+  <link rel="stylesheet" href="/css/style.css?v=11">
+  
+<script src="/js/loader.js?v=11"></script>
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+
+<div class="page">
+  <div id="dashboard-content">
+    <div class="loading-center" style="padding:5rem;flex-direction:column;gap:1.5rem">
+  <div class="ring-spinner"><div class="ring-spinner-inner"></div></div>
+  <div class="loading-dots"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>
+</div>
+  </div>
+</div>
+
+<footer id="footer"></footer>
+<script src="/config.js?v=11"></script>
+<script src="/js/api.js?v=11"></script>
+<script src="/js/auth.js?v=11"></script>
+<script src="/js/app.js?v=11"></script>
+<script>
+  Auth.requireAuth();
+  renderNavbar('dashboard');
+  renderFooter();
+  initChatWidget();
+
+  async function loadDashboard() {
+    const user = Auth.getUser();
+    const cont = document.getElementById('dashboard-content');
+    try {
+      const [bookmarks, watchlist] = await Promise.all([
+        api.bookmarks().catch(()=>[]),
+        api.watchlist().catch(()=>[]),
+      ]);
+      let quizResult = null;
+      try { quizResult = await api.quizResult(); } catch {}
+
+      cont.innerHTML = `
+        <!-- Profile Header -->
+        <div class="profile-header" style="margin-bottom:1.25rem">
+          ${avatarHtml(user.name, 68)}
+          <div style="flex:1">
+            <div class="profile-name">${escHtml(user.name)}</div>
+            <div style="display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;margin-bottom:.45rem">
+              ${roleBadge(user.role)}
+              ${user.role==='student'?yearBadge(user.year):''}
+              ${user.branch?`<span class="badge badge-student">${user.branch}</span>`:''}
+            </div>
+            <div class="text-small text-muted">${user.email} · ${user.roll_number||''}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:.45rem;align-items:flex-end;flex-shrink:0">
+            <a href="/quiz.html" class="btn btn-primary btn-sm">${quizResult?' Retake Quiz':'🎯 Take Quiz'}</a>
+            <a href="/profile.html?id=${user.id}" class="btn btn-secondary btn-sm">View Profile</a>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.85rem;margin-bottom:1.5rem">
+          <div class="stat-card">
+            <div class="stat-icon"></div>
+            <div><div class="stat-val">${bookmarks.length}</div><div class="stat-label">Bookmarks</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon"></div>
+            <div><div class="stat-val">${watchlist.length}</div><div class="stat-label">Watchlist</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon"></div>
+            <div><div class="stat-val">${quizResult?'✓':'—'}</div><div class="stat-label">Quiz Done</div></div>
+          </div>
+        </div>
+
+        <!-- Quiz Result -->
+        ${quizResult ? `
+        <div class="card" style="margin-bottom:1.5rem">
+          <h3 style="font-family:var(--font-serif);font-weight:800;font-size:1rem;margin-bottom:.9rem"> Your Quiz Result</h3>
+          <div class="alert alert-success" style="margin-bottom:1rem">${quizResult.ai_summary||''}</div>
+          <div style="margin-bottom:1rem">
+            <div class="text-small text-muted" style="margin-bottom:.5rem;font-weight:600">Scores by Domain</div>
+            <div style="display:flex;flex-wrap:wrap;gap:.45rem">
+              ${Object.entries(quizResult.scores||{}).map(([k,v])=>`
+                <div style="display:flex;align-items:center;gap:.35rem;background:var(--paper3);border-radius:6px;padding:.28rem .6rem;border:1px solid var(--border)">
+                  <span style="font-size:.7rem;font-weight:700;color:${domainColor(k)}">${k}</span>
+                  <span style="font-size:.8rem;font-weight:800">${v}</span>
+                </div>`).join('')}
+            </div>
+          </div>
+          ${(quizResult.recommended_clubs||[]).length?`
+          <div>
+            <div class="text-small text-muted" style="margin-bottom:.75rem;font-weight:600">Recommended for you</div>
+            <div class="card-grid">${(quizResult.recommended_clubs||[]).map(c=>clubCardHtml(c)).join('')}</div>
+          </div>`:''}
+        </div>` : `
+        <div class="card" style="margin-bottom:1.5rem;text-align:center;padding:2rem">
+          <div style="font-size:2rem;margin-bottom:.65rem"></div>
+          <div style="font-family:var(--font-serif);font-weight:700;margin-bottom:.38rem">Find Your Club</div>
+          <div class="text-muted text-small" style="margin-bottom:1rem">10 questions to get personalised club recommendations</div>
+          <a href="/quiz.html" class="btn btn-primary">Take the Quiz →</a>
+        </div>`}
+
+        <!-- Bookmarks -->
+        <div style="margin-bottom:1.5rem">
+          <div class="section-header">
+            <h3 class="section-title"> Bookmarked Clubs</h3>
+            <a href="/clubs.html" class="section-link">Browse more →</a>
+          </div>
+          ${bookmarks.length
+            ? `<div class="card-grid">${bookmarks.map(c=>clubCardHtml(c)).join('')}</div>`
+            : `<div class="card text-center" style="padding:1.75rem;color:var(--ink3)">
+                No bookmarks yet. <a href="/clubs.html" style="color:var(--accent)">Browse clubs →</a>
+               </div>`}
+        </div>
+
+        <!-- Watchlist -->
+        <div>
+          <div class="section-header">
+            <h3 class="section-title">Watchlist</h3>
+          </div>
+          ${watchlist.length ? `
+          <div style="display:flex;flex-direction:column;gap:.55rem">
+            ${watchlist.map(c=>`
+            <div class="card" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;padding:.9rem 1rem">
+              <span style="font-size:1.4rem">${c.icon||''}</span>
+              <div style="flex:1">
+                <a href="/club-detail.html?id=${c.id}" style="font-weight:700;font-size:.88rem;color:var(--ink);text-decoration:none">${escHtml(c.name)}</a>
+                <div class="text-small text-muted">${c.domain}</div>
+              </div>
+              ${c.note?`<span class="text-small text-muted" style="font-style:italic">"${escHtml(c.note)}"</span>`:''}
+              <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="removeWatch('${c.id}',this)">Remove</button>
+            </div>`).join('')}
+          </div>`
+          : `<div class="card text-center" style="padding:1.75rem;color:var(--ink3)">No watchlist yet.</div>`}
+        </div>`;
+    } catch(e) {
+      cont.innerHTML = `<div class="alert alert-error">${e.message}</div>`;
+    }
+  }
+
+  async function removeWatch(id, btn) {
+    try { await api.removeWatchlist(id); btn.closest('.card').remove(); toast('Removed'); }
+    catch(e) { toast(e.message,'error'); }
+  }
+
+  loadDashboard();
+</script>
+</body>
+</html>

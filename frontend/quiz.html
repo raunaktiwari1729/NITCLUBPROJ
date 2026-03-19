@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Club Quiz — NIT KKR Compass</title>
+  <link rel="stylesheet" href="/css/style.css?v=11">
+  
+<script src="/js/loader.js?v=11"></script>
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+
+<div class="page-sm">
+  <div style="margin-bottom:1.5rem;text-align:center">
+    <h1 style="font-family:var(--font-serif);font-size:1.6rem;font-weight:800;letter-spacing:-.03em;margin-bottom:.3rem">🎯 Club Match Quiz</h1>
+    <p class="text-muted text-small">10 questions to find your perfect club</p>
+  </div>
+
+  <!-- Progress -->
+  <div style="background:var(--paper3);border-radius:8px;height:5px;margin-bottom:1.5rem;overflow:hidden">
+    <div id="progress-bar" style="height:100%;background:linear-gradient(90deg,var(--red),var(--blue),var(--p-lime));border-radius:8px;transition:width .55s var(--ease);width:0%"></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;margin-top:-.9rem;margin-bottom:1.25rem">
+    <span class="text-small text-muted" id="q-counter">Question 1 of 10</span>
+    <span class="text-small text-muted" id="q-domain"></span>
+  </div>
+
+  <div id="quiz-area">
+    <div class="loading-center"><span class="spinner"></span></div>
+  </div>
+</div>
+
+<style>
+.option-btn {
+  width:100%; text-align:left; padding:.82rem 1rem;
+  background:var(--paper2); border:1.5px solid var(--border);
+  border-radius:var(--radius); color:var(--ink);
+  font-family:var(--font-body); font-size:.88rem; font-weight:500;
+  cursor:pointer; transition:all .15s; margin-bottom:.5rem; display:block;
+  line-height:1.45;
+}
+.option-btn:hover { border-color:var(--accent); background:var(--red-bg); }
+.option-btn.selected { border-color:var(--accent); background:var(--red-bg); color:var(--accent); font-weight:600; }
+</style>
+
+<footer id="footer"></footer>
+<script src="/config.js?v=11"></script>
+<script src="/js/api.js?v=11"></script>
+<script src="/js/auth.js?v=11"></script>
+<script src="/js/app.js?v=11"></script>
+<script>
+  renderNavbar('');
+  renderFooter();
+  initChatWidget();
+  let questions = [], answers = [], currentQ = 0;
+
+  async function loadQuestions() {
+    try {
+      questions = await api.get('/api/quiz/questions', false);
+      renderQuestion();
+    } catch(e) {
+      document.getElementById('quiz-area').innerHTML = `<div class="alert alert-error">${e.message}</div>`;
+    }
+  }
+
+  function renderQuestion() {
+    const q = questions[currentQ];
+    if (!q) return;
+    const pct = (currentQ / questions.length) * 100;
+    document.getElementById('progress-bar').style.width = pct + '%';
+    document.getElementById('q-counter').textContent = `Question ${currentQ+1} of ${questions.length}`;
+    document.getElementById('q-domain').textContent = q.domain || '';
+
+    // FIX: backend uses "text" and "opts" instead of "question" and "options"
+    const questionText = q.question || q.text;
+    const options = q.options || q.opts;
+
+    document.getElementById('quiz-area').innerHTML = `
+      <div class="card" style="margin-bottom:1.1rem">
+        <div style="font-family:var(--font-serif);font-size:1.05rem;font-weight:700;line-height:1.5">${escHtml(questionText)}</div>
+      </div>
+      <div id="options">
+        ${options.map((o,i)=>`
+          <button class="option-btn" onclick="selectOption(${i},this)">${escHtml(o)}</button>
+        `).join('')}
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:1.1rem">
+        <button class="btn btn-ghost btn-sm" onclick="prevQuestion()" ${currentQ===0?'disabled':''}>← Back</button>
+        <button class="btn btn-secondary btn-sm" id="next-btn" onclick="nextQuestion()" style="display:none">Next →</button>
+      </div>`;
+  }
+
+  function selectOption(idx, btn) {
+    answers[currentQ] = idx;
+    document.querySelectorAll('.option-btn').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
+    const nextBtn = document.getElementById('next-btn');
+    nextBtn.style.display = 'inline-flex';
+    if (currentQ < questions.length - 1) {
+      setTimeout(() => nextQuestion(), 400);
+    } else {
+      nextBtn.textContent = 'Submit →';
+      nextBtn.classList.replace('btn-secondary','btn-primary');
+      setTimeout(() => submitQuiz(), 400);
+    }
+  }
+
+  function nextQuestion() {
+    if (answers[currentQ] === undefined) { toast('Pick an option first','error'); return; }
+    if (currentQ < questions.length - 1) { currentQ++; renderQuestion(); }
+    else submitQuiz();
+  }
+
+  function prevQuestion() {
+    if (currentQ > 0) { currentQ--; renderQuestion(); }
+  }
+
+  async function submitQuiz() {
+    if (!Auth.isLoggedIn()) { window.location.href='/login.html?next=/quiz.html'; return; }
+    if (answers.filter(a=>a!==undefined).length < questions.length) { toast('Answer all questions first','error'); return; }
+    document.getElementById('quiz-area').innerHTML = `
+      <div class="loading-center" style="padding:3rem;flex-direction:column;gap:1rem">
+        <span class="spinner"></span>
+        <div class="text-muted text-small">Analysing your answers…</div>
+      </div>`;
+    try {
+      await api.post('/api/quiz/submit', { answers });
+      window.location.href = '/quiz-result.html';
+    } catch(e) {
+      document.getElementById('quiz-area').innerHTML = `<div class="alert alert-error">${e.message}</div>`;
+    }
+  }
+
+  loadQuestions();
+</script>
+</body>
+</html>

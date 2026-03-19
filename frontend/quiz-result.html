@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Result — NIT KKR Compass</title>
+  <link rel="stylesheet" href="/css/style.css?v=11">
+  
+<script src="/js/loader.js?v=11"></script>
+</head>
+<body>
+<nav class="navbar" id="navbar"></nav>
+
+<div class="page-sm">
+  <div id="result-content">
+    <div class="loading-center" style="padding:5rem"><span class="spinner"></span></div>
+  </div>
+</div>
+
+<footer id="footer"></footer>
+<script src="/config.js?v=11"></script>
+<script src="/js/api.js?v=11"></script>
+<script src="/js/auth.js?v=11"></script>
+<script src="/js/app.js?v=11"></script>
+<script>
+  Auth.requireAuth();
+  renderNavbar('');
+  renderFooter();
+  initChatWidget();
+
+  async function loadResult() {
+    const cont = document.getElementById('result-content');
+    try {
+      const r = await api.quizResult();
+      const topDomain = Object.entries(r.scores||{}).sort((a,b)=>b[1]-a[1])[0];
+      const col = topDomain ? domainColor(topDomain[0]) : 'var(--accent)';
+
+      cont.innerHTML = `
+        <!-- Top match -->
+        <div class="card" style="text-align:center;padding:2.2rem;margin-bottom:1.25rem;border-color:${col}28;background:linear-gradient(135deg,${col}08,transparent)">
+          <div style="font-size:2.5rem;margin-bottom:.65rem">${DOMAIN_ICON[topDomain?.[0]]||'🎯'}</div>
+          <div class="text-small text-muted" style="margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.05em;font-weight:700">Your Top Match</div>
+          <div style="font-family:var(--font-serif);font-size:1.85rem;font-weight:800;color:${col};letter-spacing:-.03em;margin-bottom:.65rem">${topDomain?.[0]||'Mixed'}</div>
+          ${r.ai_summary?`<p style="font-size:.88rem;color:var(--ink2);line-height:1.7;max-width:480px;margin:0 auto">${escHtml(r.ai_summary)}</p>`:''}
+        </div>
+
+        <!-- Score breakdown -->
+        <div class="card" style="margin-bottom:1.25rem">
+          <h3 style="font-family:var(--font-serif);font-weight:800;font-size:.95rem;margin-bottom:1rem">📊 Score Breakdown</h3>
+          <div style="display:flex;flex-direction:column;gap:.65rem">
+            ${Object.entries(r.scores||{}).sort((a,b)=>b[1]-a[1]).map(([domain, score])=>{
+              const max = Math.max(...Object.values(r.scores||{}));
+              const pct = max ? Math.round((score/max)*100) : 0;
+              const c = domainColor(domain);
+              return `<div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:.3rem">
+                  <span style="font-size:.82rem;font-weight:600;color:${c}">${domain}</span>
+                  <span style="font-size:.8rem;font-weight:700">${score}</span>
+                </div>
+                <div style="background:var(--paper3);border-radius:4px;height:7px;overflow:hidden">
+                  <div style="width:${pct}%;height:100%;background:${c};border-radius:4px;transition:width .6s"></div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- Recommended clubs -->
+        ${(r.recommended_clubs||[]).length ? `
+        <div style="margin-bottom:1.5rem">
+          <div class="section-header">
+            <h3 class="section-title">🎯 Recommended Clubs</h3>
+          </div>
+          <div class="card-grid">${(r.recommended_clubs||[]).map(c=>clubCardHtml(c)).join('')}</div>
+        </div>` : ''}
+
+        <!-- Actions -->
+        <div style="display:flex;gap:.65rem;flex-wrap:wrap;justify-content:center">
+          <a href="/clubs.html" class="btn btn-primary">Browse All Clubs →</a>
+          <a href="/quiz.html" class="btn btn-secondary">Retake Quiz</a>
+          <a href="/dashboard.html" class="btn btn-ghost">Dashboard</a>
+        </div>`;
+    } catch(e) {
+      cont.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🎯</div>
+          <div class="empty-title">No result yet</div>
+          <div class="empty-sub">Take the quiz first to see your matches</div>
+          <a href="/quiz.html" class="btn btn-primary" style="margin-top:1rem">Take the Quiz →</a>
+        </div>`;
+    }
+  }
+
+  loadResult();
+</script>
+</body>
+</html>

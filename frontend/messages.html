@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Messages — NIT KKR Compass</title>
+  <link rel="stylesheet" href="/css/style.css?v=11">
+  
+<script src="/js/loader.js?v=11"></script>
+</head>
+<body style="overflow:hidden">
+<nav class="navbar" id="navbar"></nav>
+
+<div class="messages-layout">
+  <!-- Threads Panel -->
+  <div class="threads-panel">
+    <div class="threads-header">
+      Messages
+    </div>
+    <!-- Search -->
+    <div style="padding:.6rem .75rem;border-bottom:1px solid var(--border);position:relative">
+      <input class="form-input" id="user-search" placeholder="Search students…" style="font-size:.8rem;padding:.4rem .7rem"
+        oninput="searchUsers(this.value)" autocomplete="off">
+      <div id="search-results" style="position:absolute;left:.75rem;right:.75rem;top:calc(100% - .6rem);z-index:50;background:var(--paper2);border:1px solid var(--border2);border-radius:8px;display:none;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4)"></div>
+    </div>
+    <div style="flex:1;overflow-y:auto" id="threads-list">
+      <div class="loading-center"><span class="spinner"></span></div>
+    </div>
+  </div>
+
+  <!-- Chat Panel -->
+  <div class="chat-panel" id="chat-panel">
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.75rem;color:var(--ink3)">
+      <div style="font-size:2.5rem"></div>
+      <div style="font-size:.9rem;font-weight:600">Select a conversation</div>
+      <div style="font-size:.8rem">Or search for a student to start chatting</div>
+    </div>
+  </div>
+</div>
+
+<footer id="footer"></footer>
+<script src="/config.js?v=11"></script>
+<script src="/js/api.js?v=11"></script>
+<script src="/js/auth.js?v=11"></script>
+<script src="/js/app.js?v=11"></script>
+<script>
+  Auth.requireAuth();
+  renderNavbar('messages');
+  renderFooter();
+
+  const me = Auth.getUser();
+  let currentUserId = null;
+  let pollTimer = null;
+
+  // Load threads
+  async function loadThreads() {
+    try {
+      const threads = await api.dmThreads();
+      const list = document.getElementById('threads-list');
+      if (!threads.length) {
+        list.innerHTML = `<div class="empty-state" style="padding:2rem"><div class="empty-icon" style="font-size:1.5rem"></div><div style="font-size:.8rem;color:var(--ink3)">No conversations yet.<br>Search for someone to start!</div></div>`;
+        return;
+      }
+      list.innerHTML = (threads||[]).map(t => `
+        <div class="thread-item ${t.user.id===currentUserId?'active':''}" onclick="openChat('${t.user.id}')">
+          ${avatarHtml(t.user.name, 36)}
+          <div class="thread-meta">
+            <div class="thread-name" style="display:flex;align-items:center;gap:.3rem">
+              ${escHtml(t.user.name)}
+              ${roleBadge(t.user.role)}
+            </div>
+            <div class="thread-last">${escHtml(t.last_msg||'')}</div>
+          </div>
+          ${t.unread ? '<div class="unread-dot"></div>' : ''}
+        </div>`).join('');
+    } catch {}
+  }
+
+  // Search users
+  let searchTimer;
+  async function searchUsers(q) {
+    clearTimeout(searchTimer);
+    const res = document.getElementById('search-results');
+    if (!q.trim()) { res.style.display='none'; return; }
+    searchTimer = setTimeout(async () => {
+      try {
+        const users = await api.searchUsers(q);
+        if (!users.length) { res.style.display='none'; return; }
+        res.innerHTML = (users||[]).map(u => `
+          <div style="display:flex;align-items:center;gap:.6rem;padding:.6rem .85rem;cursor:pointer;transition:background .1s"
+            onmouseover="this.style.background='var(--paper3)'" onmouseout="this.style.background=''"
+            onclick="selectUser('${u.id}','${escHtml(u.name)}')">
+            ${avatarHtml(u.name, 30)}
+            <div>
+              <div style="font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:.3rem">
+                ${escHtml(u.name)} ${roleBadge(u.role)}
+              </div>
+              <div style="font-size:.72rem;color:var(--ink3)">${u.roll_number||''} · ${u.branch||''} ${u.year?'· Y'+u.year:''}</div>
+            </div>
+          </div>`).join('');
+        res.style.display = 'block';
+      } catch {}
+    }, 300);
+  }
+
+  function selectUser(id, name) {
+    document.getElementById('user-search').value = '';
+    document.getElementById('search-results').style.display = 'none';
+    openChat(id);
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#user-search') && !e.target.closest('#search-results'))
+      document.getElementById('search-results').style.display = 'none';
+  });
+
+  // Open chat
+  async function openChat(userId) {
+    currentUserId = userId;
+    clearInterval(pollTimer);
+    document.querySelectorAll('.thread-item').forEach(el => el.classList.remove('active'));
+    document.querySelector(`[onclick="openChat('${userId}')"]`)?.classList.add('active');
+
+    const panel = document.getElementById('chat-panel');
+    panel.innerHTML = '<div class="loading-center"><span class="spinner"></span></div>';
+
+    try {
+      const [targetUser, msgs] = await Promise.all([api.getUser(userId), api.dmThread(userId)]);
+      renderChatPanel(targetUser, msgs);
+      pollTimer = setInterval(() => refreshMessages(userId), 3000);
+    } catch(e) {
+      panel.innerHTML = `<div class="alert alert-error" style="margin:1rem">${e.message}</div>`;
+    }
+    loadThreads();
+  }
+
+  function renderChatPanel(targetUser, msgs) {
+    const panel = document.getElementById('chat-panel');
+    panel.innerHTML = `
+      <div class="chat-header">
+        ${avatarHtml(targetUser.name, 36)}
+        <div>
+          <div style="font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:.4rem">
+            ${escHtml(targetUser.name)}
+            ${roleBadge(targetUser.role)}
+            ${targetUser.role==='student'?yearBadge(targetUser.year):''}
+          </div>
+          <div style="font-size:.72rem;color:var(--ink3)">${targetUser.roll_number||''} · ${targetUser.branch||''}</div>
+        </div>
+      </div>
+      <div class="chat-messages" id="chat-messages"></div>
+      <div class="chat-input-area">
+        <input class="form-input" id="msg-input" placeholder="Type a message…"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey)sendMsg()" style="font-size:.88rem">
+        <button class="btn btn-primary" onclick="sendMsg()">Send</button>
+      </div>`;
+    renderMessages(msgs);
+    scrollToBottom();
+  }
+
+  function renderMessages(msgs) {
+    const container = document.getElementById('chat-messages');
+    if (!container) return;
+    container.innerHTML = (msgs||[]).map(m => {
+      const mine = m.from_id === me.id;
+      const exactTime = m.created_at ? new Date(m.created_at).toLocaleString(undefined, {
+        month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'
+      }) : '';
+      return `<div style="display:flex;flex-direction:column;align-items:${mine?'flex-end':'flex-start'}">
+        <div class="msg-bubble ${mine?'msg-mine':'msg-theirs'}">${escHtml(m.body)}</div>
+        <div class="msg-time" title="${exactTime}">${timeAgo(m.created_at)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function scrollToBottom() {
+    const c = document.getElementById('chat-messages');
+    if (c) c.scrollTop = c.scrollHeight;
+  }
+
+  async function refreshMessages(userId) {
+    if (!userId || !document.getElementById('chat-messages')) return;
+    try {
+      const msgs = await api.dmThread(userId);
+      const container = document.getElementById('chat-messages');
+      const wasAtBottom = container.scrollHeight - container.clientHeight - container.scrollTop < 60;
+      renderMessages(msgs);
+      if (wasAtBottom) scrollToBottom();
+    } catch {}
+  }
+
+  async function sendMsg() {
+    const input = document.getElementById('msg-input');
+    const body  = input.value.trim();
+    if (!body || !currentUserId) return;
+    input.value = '';
+    try {
+      await api.sendDM({ to_user_id: currentUserId, body });
+      await refreshMessages(currentUserId);
+      scrollToBottom();
+      loadThreads();
+    } catch(e) { toast(e.message, 'error'); input.value = body; }
+  }
+
+  // Init
+  loadThreads();
+
+  // Pre-open from URL param
+  const uid = new URLSearchParams(location.search).get('user');
+  if (uid) openChat(uid);
+</script>
+</body>
+</html>
