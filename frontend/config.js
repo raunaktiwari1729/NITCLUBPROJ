@@ -1,1 +1,1 @@
-const API_BASE =  "https://nit-club-compass.onrender.com";
+const API_BASE =  "https://nitclubproj.onrender.com/";
