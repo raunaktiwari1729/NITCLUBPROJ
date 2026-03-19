@@ -8,29 +8,18 @@ from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 import jwt, bcrypt, os, re, secrets, string
 
-# ─── CONFIG ───────────────────────────────────────────────────────────────────
-import sys
+
+
 
 MONGO_URL        = os.environ.get("MONGO_URL",          "mongodb://localhost:27017")
 DB_NAME          = os.environ.get("DB_NAME",            "college_club_compass")
-JWT_SECRET       = os.environ.get("JWT_SECRET_KEY")
-ADMIN_SENIOR_KEY = os.environ.get("ADMIN_SENIOR_KEY")
-CLUB_ADMIN_KEY   = os.environ.get("CLUB_ADMIN_KEY")
-ADMIN_PASSWORD   = os.environ.get("ADMIN_PASSWORD")
+JWT_SECRET       = os.environ.get("JWT_SECRET_KEY",     "default-dev-secret-change-me-in-production")
+ADMIN_SENIOR_KEY = os.environ.get("ADMIN_SENIOR_KEY",   "default-senior-key")
+CLUB_ADMIN_KEY   = os.environ.get("CLUB_ADMIN_KEY",     "default-club-key")
+ADMIN_PASSWORD   = os.environ.get("ADMIN_PASSWORD",     "admin123")
 GROQ_API_KEY     = os.environ.get("GROQ_API_KEY")
 COLLEGE_DOMAIN   = os.environ.get("COLLEGE_DOMAIN",     "nitkkr.ac.in")
 OWNER_EMAIL      = os.environ.get("OWNER_EMAIL",        "raunaktiwari1729@gmail.com")
-
-_missing = [k for k, v in {
-    "JWT_SECRET_KEY": JWT_SECRET,
-    "ADMIN_SENIOR_KEY": ADMIN_SENIOR_KEY,
-    "CLUB_ADMIN_KEY": CLUB_ADMIN_KEY,
-    "ADMIN_PASSWORD": ADMIN_PASSWORD,
-}.items() if not v]
-if _missing:
-    print(f"[STARTUP ERROR] Missing required env vars: {', '.join(_missing)}", file=sys.stderr)
-    print("[STARTUP ERROR] Set these environment variables before running the server.", file=sys.stderr)
-    sys.exit(1)
 
 
 def _safe_dt(s: str) -> datetime:
